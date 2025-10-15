@@ -6,7 +6,9 @@ import com.example.jobportal.dto.response.PageInfo;
 import com.example.jobportal.service.JobService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,8 +29,11 @@ public class JobController extends BaseController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String location,
-            Pageable pageable
+            @RequestParam(defaultValue = "0") int page
+
     ) {
+        int size = 16;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<JobBaseResponse> jobPage = jobService.getBaseJobs(keyword, category, location, pageable);
 
         PageInfo pageInfo = PageInfo.of(

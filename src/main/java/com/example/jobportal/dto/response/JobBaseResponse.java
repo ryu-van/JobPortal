@@ -13,12 +13,12 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class JobBaseResponse {
-   private Long id;
-   private String title;
-   private String companyName;
-   private String address;
-   private String companyLogo;
-   private Boolean isSalaryNegotiable;
+    private Long id;
+    private String title;
+    private String companyName;
+    private String address;
+    private String companyLogo;
+    private Boolean isSalaryNegotiable;
     private BigDecimal salaryMin;
     private BigDecimal salaryMax;
     private String salaryCurrency;

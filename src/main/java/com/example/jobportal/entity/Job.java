@@ -1,5 +1,7 @@
 package com.example.jobportal.entity;
 
+import com.example.jobportal.converter.JobStatusConverter;
+import com.example.jobportal.enums.JobStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -50,12 +52,14 @@ public class Job extends BaseEntity {
 
     private String salaryCurrency = "VND";
     private String skills;
-    private int numberOfPositions = 1;
+    private Integer numberOfPositions = 1;
 
     // Có giờ cụ thể
     private LocalDateTime applicationDeadline;
 
-    private String status = "draft";
+    @Convert(converter = JobStatusConverter.class)
+    private JobStatus status;
+
     private Integer viewsCount = 0;
     private Integer applicationsCount = 0;
     private Boolean isFeatured = false;

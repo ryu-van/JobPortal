@@ -69,4 +69,11 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("Internal server error: " + ex.getMessage()));
     }
+
+    @ExceptionHandler(JobException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJobException(JobException ex) {
+        return ResponseEntity
+                .status(ex.getStatus())
+                .body(ApiResponse.error(ex.getMessage()));
+    }
 }
