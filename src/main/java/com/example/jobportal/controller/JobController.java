@@ -29,10 +29,10 @@ public class JobController extends BaseController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String location,
-            @RequestParam(defaultValue = "0") int page
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue="16") int size
 
     ) {
-        int size = 16;
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<JobBaseResponse> jobPage = jobService.getBaseJobs(keyword, category, location, pageable);
 
@@ -44,6 +44,7 @@ public class JobController extends BaseController {
 
         return ok("Get job list successfully", jobPage.getContent(), pageInfo);
     }
+
 
 
 }

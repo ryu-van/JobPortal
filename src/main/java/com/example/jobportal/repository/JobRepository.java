@@ -39,4 +39,66 @@ public interface JobRepository extends JpaRepository<Job, Long> {
             Pageable pageable
     );
 
+    @Query("""
+                SELECT new com.example.jobportal.dto.response.JobBaseResponse(
+                    j.id,
+                    j.title,
+                    c.name,
+                    j.address.city,
+                    c.logoUrl,
+                    j.isSalaryNegotiable,
+                    j.salaryMin,
+                    j.salaryMax,
+                    j.salaryCurrency
+                )
+                FROM Job j
+                JOIN j.company c
+                JOIN j.categories cat
+                WHERE (:keyword IS NULL OR LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')))
+                  AND (:category IS NULL OR LOWER(cat.name) = LOWER(:category))
+                  AND (:location IS NULL OR LOWER(j.address.city) LIKE LOWER(CONCAT('%', :location, '%')))
+                  AND (:status IS NULL OR LOWER(j.status) LIKE LOWER(CONCAT('%', :status, '%')))
+                              AND j.createdBy.id = :hrId
+                ORDER BY j.isFeatured DESC, j.publishedAt DESC
+            """)
+    Page<JobBaseResponse> getJobsByHrId(
+            @Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("location") String location,
+            @Param("status") String status,
+            @Param("hrId") Long hrId,
+            Pageable pageable
+    );
+
+    @Query("""
+                SELECT new com.example.jobportal.dto.response.JobBaseResponse(
+                    j.id,
+                    j.title,
+                    c.name,
+                    j.address.city,
+                    c.logoUrl,
+                    j.isSalaryNegotiable,
+                    j.salaryMin,
+                    j.salaryMax,
+                    j.salaryCurrency
+                )
+                FROM Job j
+                JOIN j.company c
+                JOIN j.categories cat
+                WHERE (:keyword IS NULL OR LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')))
+                  AND (:category IS NULL OR LOWER(cat.name) = LOWER(:category))
+                  AND (:location IS NULL OR LOWER(j.address.city) LIKE LOWER(CONCAT('%', :location, '%')))
+                  AND (:status IS NULL OR LOWER(j.status) LIKE LOWER(CONCAT('%', :status, '%')))
+                  AND j.company.id = :companyId
+                ORDER BY j.isFeatured DESC, j.publishedAt DESC
+            """)
+    Page<JobBaseResponse> getJobsByCompanyId(
+            @Param("keyword") String keyword,
+            @Param("category") String category,
+            @Param("location") String location,
+            @Param("companyId") Long companyId,
+            @Param("status") String status,
+            Pageable pageable
+    );
+
 }

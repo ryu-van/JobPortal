@@ -2,14 +2,15 @@ package com.example.jobportal.dto.response;
 
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 
 @Data
-@Builder
+@SuperBuilder
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class JobBaseResponse {
