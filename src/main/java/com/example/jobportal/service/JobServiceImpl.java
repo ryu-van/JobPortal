@@ -36,7 +36,7 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public Page<JobBaseResponseV2> getJobs(String keyword, String category, String location, Pageable pageable) {
-        return null;
+        return jobRepository.getJobs(keyword, category, location, pageable);
     }
 
     @Override
