@@ -1,6 +1,6 @@
 package com.example.jobportal.repository;
 
-import com.example.jobportal.entity.JobCategory;
+import com.example.jobportal.model.entity.JobCategory;
 import jakarta.validation.constraints.NotEmpty;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

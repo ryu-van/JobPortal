@@ -1,6 +1,6 @@
 package com.example.jobportal.converter;
 
-import com.example.jobportal.enums.JobStatus;
+import com.example.jobportal.model.enums.JobStatus;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 

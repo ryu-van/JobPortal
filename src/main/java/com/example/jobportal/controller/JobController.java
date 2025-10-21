@@ -2,7 +2,6 @@ package com.example.jobportal.controller;
 
 import com.example.jobportal.dto.request.JobRequest;
 import com.example.jobportal.dto.response.*;
-import com.example.jobportal.entity.Job;
 import com.example.jobportal.service.JobService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

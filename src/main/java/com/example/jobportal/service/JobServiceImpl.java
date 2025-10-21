@@ -4,11 +4,11 @@ import com.example.jobportal.dto.request.JobRequest;
 import com.example.jobportal.dto.response.JobBaseResponse;
 import com.example.jobportal.dto.response.JobBaseResponseV2;
 import com.example.jobportal.dto.response.JobDetailResponse;
-import com.example.jobportal.entity.BaseAddress;
-import com.example.jobportal.entity.Company;
-import com.example.jobportal.entity.Job;
-import com.example.jobportal.entity.JobCategory;
-import com.example.jobportal.enums.JobStatus;
+import com.example.jobportal.model.entity.BaseAddress;
+import com.example.jobportal.model.entity.Company;
+import com.example.jobportal.model.entity.Job;
+import com.example.jobportal.model.entity.JobCategory;
+import com.example.jobportal.model.enums.JobStatus;
 import com.example.jobportal.exception.JobException;
 import com.example.jobportal.repository.CompanyRepository;
 import com.example.jobportal.repository.JobCategoryRepository;
@@ -17,12 +17,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Set;
 
-
+@Service
 @RequiredArgsConstructor
 public class JobServiceImpl implements JobService {
     private final JobRepository jobRepository;
@@ -36,8 +39,28 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public Page<JobBaseResponseV2> getJobs(String keyword, String category, String location, Pageable pageable) {
-        return jobRepository.getJobs(keyword, category, location, pageable);
+        Page<Object[]> results = jobRepository.getJobsNative(keyword, category, location, pageable);
+
+        // Chuyển Object[] sang DTO
+        return results.map(row -> new JobBaseResponseV2(
+                ((Number) row[0]).longValue(),                   // j.id
+                (String) row[1],                                 // j.title
+                (String) row[2],                                 // company_name
+                (String) row[3],                                 // address
+                (String) row[4],                                 // company_logo
+                row[5] != null && (Boolean) row[5],              // is_salary_negotiable
+                (BigDecimal) row[6],                             // salary_min
+                (BigDecimal) row[7],                             // salary_max
+                (String) row[8],                                 // salary_currency
+                (String) row[9],                                 // work_type
+                (String) row[10],                                // employment_type
+                (String) row[11],                                // experience_level
+                row[12] != null ? ((Number) row[12]).intValue() : null,  // number_of_positions
+                row[13] != null ? ((Timestamp) row[13]).toLocalDateTime() : null, // application_deadline
+                (String) row[14]                                 // category_names (STRING_AGG)
+        ));
     }
+
 
     @Override
     @Transactional

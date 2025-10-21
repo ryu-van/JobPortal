@@ -1,14 +1,12 @@
 package com.example.jobportal.dto.response;
 
-import com.example.jobportal.entity.Job;
+import com.example.jobportal.model.entity.Job;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.stream.Collectors;

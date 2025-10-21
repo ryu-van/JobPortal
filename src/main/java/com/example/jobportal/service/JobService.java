@@ -4,7 +4,7 @@ import com.example.jobportal.dto.request.JobRequest;
 import com.example.jobportal.dto.response.JobBaseResponse;
 import com.example.jobportal.dto.response.JobBaseResponseV2;
 import com.example.jobportal.dto.response.JobDetailResponse;
-import com.example.jobportal.entity.Job;
+import com.example.jobportal.model.entity.Job;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;

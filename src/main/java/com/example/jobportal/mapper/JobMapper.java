@@ -1,7 +1,7 @@
 package com.example.jobportal.mapper;
 
 import com.example.jobportal.dto.response.JobBaseResponse;
-import com.example.jobportal.entity.Job;
+import com.example.jobportal.model.entity.Job;
 import org.springframework.stereotype.Component;
 
 @Component

@@ -1,22 +1,20 @@
 package com.example.jobportal.dto.response;
 
-import com.example.jobportal.entity.Job;
-import com.example.jobportal.entity.JobCategory;
-import lombok.AllArgsConstructor;
+import com.example.jobportal.model.entity.Job;
+import com.example.jobportal.model.entity.JobCategory;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
-public class JobBaseResponseV2 extends JobBaseResponse{
+public class JobBaseResponseV2 extends JobBaseResponse {
     private String workType;
     private String employmentType;
     private String experienceLevel;
@@ -24,7 +22,50 @@ public class JobBaseResponseV2 extends JobBaseResponse{
     private LocalDateTime applicationDeadline;
     private List<String> categoryNames;
 
-    private JobBaseResponseV2 fromEntity(Job job){
+    // Constructor mặc định - BẮT BUỘC
+    public JobBaseResponseV2() {
+        super();
+    }
+
+    // Constructor đầy đủ cho JPQL - QUAN TRỌNG!
+    public JobBaseResponseV2(
+            Long id,
+            String title,
+            String companyName,
+            String address,
+            String companyLogo,
+            Boolean isSalaryNegotiable,
+            BigDecimal salaryMin,
+            BigDecimal salaryMax,
+            String salaryCurrency,
+            String workType,
+            String employmentType,
+            String experienceLevel,
+            Integer numberOfPositions,
+            LocalDateTime applicationDeadline,
+            String categoryNames  // String từ STRING_AGG
+    ) {
+        // Gọi constructor của class cha
+        super(id, title, companyName, address, companyLogo,
+                isSalaryNegotiable, salaryMin, salaryMax, salaryCurrency);
+
+        // Set các field của class con
+        this.workType = workType;
+        this.employmentType = employmentType;
+        this.experienceLevel = experienceLevel;
+        this.numberOfPositions = numberOfPositions;
+        this.applicationDeadline = applicationDeadline;
+
+        // Chuyển String thành List<String>
+        if (categoryNames != null && !categoryNames.trim().isEmpty()) {
+            this.categoryNames = Arrays.asList(categoryNames.split(",\\s*"));
+        } else {
+            this.categoryNames = List.of();
+        }
+    }
+
+    // Method fromEntity giữ nguyên
+    public static JobBaseResponseV2 fromEntity(Job job) {
         if (job == null) return null;
 
         return JobBaseResponseV2.builder()
@@ -37,7 +78,6 @@ public class JobBaseResponseV2 extends JobBaseResponse{
                 .salaryMin(job.getSalaryMin())
                 .salaryMax(job.getSalaryMax())
                 .salaryCurrency(job.getSalaryCurrency())
-
                 .workType(job.getWorkType())
                 .employmentType(job.getEmploymentType())
                 .experienceLevel(job.getExperienceLevel())
@@ -47,10 +87,8 @@ public class JobBaseResponseV2 extends JobBaseResponse{
                         job.getCategories() != null ?
                                 job.getCategories().stream()
                                         .map(JobCategory::getName)
-                                        .toList() : null
+                                        .toList() : List.of()
                 )
                 .build();
     }
-
-
 }
