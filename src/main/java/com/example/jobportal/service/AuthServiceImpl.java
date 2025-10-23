@@ -1,6 +1,6 @@
 package com.example.jobportal.service;
 
-import com.example.jobportal.config.JwtAuthenticationFilter;
+import com.example.jobportal.security.JwtAuthenticationFilter;
 import com.example.jobportal.dto.request.LoginRequest;
 import com.example.jobportal.dto.request.RegisterRequest;
 import com.example.jobportal.dto.response.AuthResponse;
@@ -37,10 +37,10 @@ public class AuthServiceImpl implements AuthService{
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
 
-    @Value("${jwt.access-token-expiration}")
+    @Value("${spring.jwt.access-expiration}")
     private Long accessTokenExpiration;
 
-    @Value("${jwt.refresh-token-expiration}")
+    @Value("${spring.jwt.refresh-expiration}")
     private Long refreshTokenExpiration;
 
     @Override

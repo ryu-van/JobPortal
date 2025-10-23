@@ -16,7 +16,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/v1/jobs")
+@RequestMapping("${spring.base-url}/jobs")
 public class JobController extends BaseController {
     private final JobService jobService;
 
@@ -116,7 +116,7 @@ public class JobController extends BaseController {
         return ok("Job updated successfully", updatedJob);
     }
 
-    @PutMapping("/update-status/{id}")
+    @PutMapping("/{id/status}")
     public ResponseEntity<ApiResponse<Void>> updateJobStatus(
             @PathVariable Long id,
             @RequestParam String status) {

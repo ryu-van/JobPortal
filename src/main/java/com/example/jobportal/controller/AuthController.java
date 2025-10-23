@@ -21,7 +21,7 @@ import java.util.Arrays;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("${base-url}/auth")
+@RequestMapping("${spring.base-url}/auth")
 public class AuthController extends BaseController {
     private final AuthService authService;
 

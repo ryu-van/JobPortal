@@ -1,7 +1,14 @@
 package com.example.jobportal.exception;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.http.HttpStatus;
 
+
+@AllArgsConstructor
+@Setter
+@Getter
 public class JobException extends RuntimeException {
     private final HttpStatus status;
 
@@ -10,9 +17,6 @@ public class JobException extends RuntimeException {
         this.status = status;
     }
 
-    public HttpStatus getStatus() {
-        return status;
-    }
 
     public static JobException notFound(String message) {
         return new JobException(message, HttpStatus.NOT_FOUND);
@@ -25,4 +29,5 @@ public class JobException extends RuntimeException {
     public static JobException forbidden(String message) {
         return new JobException(message, HttpStatus.FORBIDDEN);
     }
+
 }

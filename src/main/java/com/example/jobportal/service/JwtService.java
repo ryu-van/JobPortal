@@ -19,13 +19,13 @@ import java.util.function.Function;
 @Service
 @RequiredArgsConstructor
 public class JwtService {
-    @Value("${jwt.secret}")
+    @Value("${spring.jwt.secret}")
     private String jwtSecret;
 
-    @Value("${jwt.access-token-expiration}")
+    @Value("${spring.jwt.access-expiration}")
     private Long accessTokenExpiration;
 
-    @Value("${jwt.refresh-token-expiration}")
+    @Value("${spring.jwt.refresh-expiration}")
     private Long refreshTokenExpiration;
 
     private SecretKey getSigningKey() {
@@ -80,10 +80,18 @@ public class JwtService {
                 .getBody();
     }
 
-    public Boolean isTokenValid(String token,User user) {
+    public Boolean isTokenValid(String token, UserDetails userDetails) {
         try {
             final String username = extractUsername(token);
-            return username.equals(user.getEmail()) && !isTokenExpired(token);
+            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    public Boolean isTokenValid(String token) {
+        try {
+            extractAllClaims(token);
+            return !isTokenExpired(token);
         } catch (Exception e) {
             return false;
         }

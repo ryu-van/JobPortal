@@ -6,6 +6,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("")
+@RequestMapping("${spring.base-url}/users")
 public class UserController {
 }

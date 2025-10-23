@@ -1,4 +1,4 @@
-package com.example.jobportal.config;
+package com.example.jobportal.security;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

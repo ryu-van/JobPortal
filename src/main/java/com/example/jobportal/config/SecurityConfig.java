@@ -1,5 +1,7 @@
 package com.example.jobportal.config;
 
+import com.example.jobportal.security.JwtAuthenticationEntryPoint;
+import com.example.jobportal.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
