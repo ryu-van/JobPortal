@@ -1,6 +1,8 @@
 package com.example.jobportal.model.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -10,16 +12,19 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "company_verification_requests")
-public class CompanyVerificationRequest {
+public class CompanyVerificationRequest extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String companyName;
-
+    @NotBlank(message = "Giấy phép kinh doanh không được để trống")
     private String businessLicense;
 
+    @NotBlank(message = "Mã số thuế không được để trống")
+    @Column(nullable = false, unique = true)
+    @Pattern(regexp = "^[0-9]{10}(-[0-9]{3})?$",
+            message = "Mã số thuế không hợp lệ")
     private String taxCode;
 
     private String contactPerson;
@@ -40,9 +45,6 @@ public class CompanyVerificationRequest {
 
     private LocalDateTime reviewedAt;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    private LocalDateTime updatedAt = LocalDateTime.now();
 
     // --- Relationships ---
     @ManyToOne(fetch = FetchType.LAZY)
@@ -57,9 +59,5 @@ public class CompanyVerificationRequest {
     @JoinColumn(name = "reviewed_by")
     private User reviewedBy; // admin nào đã duyệt
 
-    // --- Lifecycle hooks ---
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+
 }

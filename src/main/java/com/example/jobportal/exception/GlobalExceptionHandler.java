@@ -76,4 +76,10 @@ public class GlobalExceptionHandler {
                 .status(ex.getStatus())
                 .body(ApiResponse.error(ex.getMessage()));
     }
+    @ExceptionHandler(UserException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUserException(UserException ex) {
+        return ResponseEntity
+                .status(ex.getStatus())
+                .body(ApiResponse.error(ex.getMessage()));
+    }
 }

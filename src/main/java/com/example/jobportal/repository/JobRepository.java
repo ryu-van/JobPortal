@@ -78,6 +78,9 @@ public interface JobRepository extends JpaRepository<Job, Long> {
                     j.id,
                     j.title,
                     c.name,
+                    j.address.street,
+                    j.address.ward,
+                    j.address.district,
                     j.address.city,
                     c.logoUrl,
                     j.isSalaryNegotiable,
@@ -109,7 +112,11 @@ public interface JobRepository extends JpaRepository<Job, Long> {
                     j.id,
                     j.title,
                     c.name AS company_name,
-                    a.address AS address,
+                    j.street AS street,
+                    j.ward AS ward,
+                    j.district AS district,
+                    j.city AS city,
+                    j.country AS country,
                     c.logo_url AS company_logo,
                     j.is_salary_negotiable,
                     j.salary_min,
@@ -125,7 +132,6 @@ public interface JobRepository extends JpaRepository<Job, Long> {
                 JOIN companies c ON j.company_id = c.id
                 LEFT JOIN job_category_mapping jcm ON j.id = jcm.job_id
                 LEFT JOIN job_categories cat ON jcm.category_id = cat.id
-                LEFT JOIN base_address a ON j.address_id = a.id
                 WHERE (:keyword IS NULL OR LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')))
                   AND (:category IS NULL OR LOWER(cat.name) = LOWER(:category))
                   AND (:location IS NULL OR LOWER(a.city) LIKE LOWER(CONCAT('%', :location, '%')))

@@ -6,6 +6,8 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Calendar;
+import java.util.Date;
 
 @Builder
 @Setter
@@ -48,6 +50,12 @@ public class User extends BaseEntity {
 
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "verification_token")
+    private String verificationToken;
+
+    @Column(name = "token_expiry_date")
+    private Date tokenExpiryDate;
+
     @ManyToOne
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
@@ -55,6 +63,20 @@ public class User extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "company_id")
     private Company company;
+
+    public void setVerificationToken(String token) {
+        this.verificationToken = token;
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(new Date());
+        cal.add(Calendar.HOUR, 24);
+        this.tokenExpiryDate = cal.getTime();
+    }
+
+    public boolean isTokenExpired() {
+        return tokenExpiryDate != null && tokenExpiryDate.before(new Date());
+    }
+
+
 
 
 }

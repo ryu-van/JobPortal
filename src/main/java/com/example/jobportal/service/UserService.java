@@ -24,5 +24,5 @@ public interface UserService {
     UserDetailResponse getUserById(Long id);
     UserBaseResponse updateUser(Long id, UpdateUserRequest request);
     void toggleUserActive(Long id, Boolean isActive);
-
+    void deleteUser(Long id);
 }

@@ -44,7 +44,7 @@ public class CategoryServiceImpl implements CategoryService{
         JobCategory parentCategory = null;
         if (jobCategoryRequest.getParentId() != null) {
             parentCategory = jobCategoryRepository.findById(jobCategoryRequest.getParentId())
-                    .orElseThrow(() -> JobException.notFound("Parent category not found with id: " + jobCategoryRequest.getParentCategoryId()));
+                    .orElseThrow(() -> JobException.notFound("Parent category not found with id: " + jobCategoryRequest.getParentId()));
         }
         JobCategory jobCategory = new JobCategory();
         jobCategory.setName(jobCategoryRequest.getName());

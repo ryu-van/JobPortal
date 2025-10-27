@@ -4,15 +4,11 @@ import com.example.jobportal.dto.request.JobRequest;
 import com.example.jobportal.dto.response.JobBaseResponse;
 import com.example.jobportal.dto.response.JobBaseResponseV2;
 import com.example.jobportal.dto.response.JobDetailResponse;
-import com.example.jobportal.model.entity.BaseAddress;
-import com.example.jobportal.model.entity.Company;
-import com.example.jobportal.model.entity.Job;
-import com.example.jobportal.model.entity.JobCategory;
+import com.example.jobportal.exception.UserException;
+import com.example.jobportal.model.entity.*;
 import com.example.jobportal.model.enums.JobStatus;
 import com.example.jobportal.exception.JobException;
-import com.example.jobportal.repository.CompanyRepository;
-import com.example.jobportal.repository.JobCategoryRepository;
-import com.example.jobportal.repository.JobRepository;
+import com.example.jobportal.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +27,8 @@ public class JobServiceImpl implements JobService {
     private final JobRepository jobRepository;
     private final CompanyRepository companyRepository;
     private final JobCategoryRepository jobCategoryRepository;
+    private final SavedJobRepository savedJobRepository;
+    private final UserRepository userRepository;
 
     @Override
     public Page<JobBaseResponse> getBaseJobs(String keyword, String category, String location, Pageable pageable) {
@@ -46,18 +44,21 @@ public class JobServiceImpl implements JobService {
                 ((Number) row[0]).longValue(),                   // j.id
                 (String) row[1],                                 // j.title
                 (String) row[2],                                 // company_name
-                (String) row[3],                                 // address
-                (String) row[4],                                 // company_logo
-                row[5] != null && (Boolean) row[5],              // is_salary_negotiable
-                (BigDecimal) row[6],                             // salary_min
-                (BigDecimal) row[7],                             // salary_max
-                (String) row[8],                                 // salary_currency
-                (String) row[9],                                 // work_type
-                (String) row[10],                                // employment_type
-                (String) row[11],                                // experience_level
-                row[12] != null ? ((Number) row[12]).intValue() : null,  // number_of_positions
-                row[13] != null ? ((Timestamp) row[13]).toLocalDateTime() : null, // application_deadline
-                (String) row[14]                                 // category_names (STRING_AGG)
+                (String) row[3],
+                (String) row[4],
+                (String) row[5],
+                (String) row[6],
+                (String) row[7],                                 // company_logo
+                row[8] != null && (Boolean) row[8],              // is_salary_negotiable
+                (BigDecimal) row[9],                             // salary_min
+                (BigDecimal) row[10],                             // salary_max
+                (String) row[11],                                 // salary_currency
+                (String) row[12],                                 // work_type
+                (String) row[13],                                // employment_type
+                (String) row[14],                                // experience_level
+                row[15] != null ? ((Number) row[15]).intValue() : null,  // number_of_positions
+                row[16] != null ? ((Timestamp) row[16]).toLocalDateTime() : null, // application_deadline
+                (String) row[17]                                 // category_names (STRING_AGG)
         ));
     }
 
@@ -84,6 +85,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    @Transactional
     public Job updateJob(Long jobId, JobRequest jobRequest) {
         validateJobRequest(jobRequest);
 
@@ -131,6 +133,29 @@ public class JobServiceImpl implements JobService {
         return jobRepository.getJobsByCompanyId(keyword, category, location, companyId, status, pageable);
     }
 
+    @Override
+    @Transactional
+    public JobBaseResponse addJobToListSavedJob(Long jobId, Long userId) {
+        Job existingJob = jobRepository.findById(jobId)
+                .orElseThrow(() -> JobException.notFound("Job not found"));
+        User existingUser = userRepository.findById(userId)
+                .orElseThrow(() -> UserException.notFound("User not found"));
+        SavedJob savedJob = SavedJob.builder()
+            .job(existingJob)
+            .user(existingUser)
+            .build();
+        savedJobRepository.save(savedJob);
+        return JobBaseResponse.fromEntity(existingJob);
+    }
+
+    @Override
+    @Transactional
+    public void removeJobFromListSavedJob(Long savedJobId) {
+        SavedJob existingSavedJob = savedJobRepository.findById(savedJobId)
+                .orElseThrow(() -> JobException.notFound("Saved job not found"));
+        savedJobRepository.delete(existingSavedJob);
+    }
+
 
     private void validateJobRequest(JobRequest jobRequest) {
         if (!companyRepository.existsById(jobRequest.getCompanyId())) {
@@ -172,7 +197,9 @@ public class JobServiceImpl implements JobService {
     }
     private void mapJobRequestToEntity(JobRequest req, Job job, Company company, Set<JobCategory> categories) {
         BaseAddress baseAddress = BaseAddress.builder()
-                .address(req.getAddress())
+                .street(req.getStreet())
+                .ward(req.getWard())
+                .district(req.getDistrict())
                 .city(req.getCity())
                 .country(req.getCountry())
                 .build();

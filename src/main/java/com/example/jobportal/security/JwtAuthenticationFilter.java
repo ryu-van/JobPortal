@@ -84,7 +84,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .secure(true)
                 .path("/")
                 .maxAge(maxAge)
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
     }

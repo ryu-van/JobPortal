@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @RestController
@@ -74,6 +75,24 @@ public class AuthController extends BaseController {
     public ResponseEntity<ApiResponse<AuthResponse>> getCurrentUser() {
         AuthResponse authResponse = authService.getCurrentUser();
         return ok(authResponse);
+    }
+    @GetMapping("/verify-email")
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(@RequestParam String token) {
+        String message = authService.verifyEmail(token);
+        return ok(message);
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiResponse<Void>> resendVerification(
+            @RequestBody Map<String, String> request) {
+        String email = request.get("email");
+
+        if (email == null || email.trim().isEmpty()) {
+            return badRequest("Email không được để trống");
+        }
+
+        String message = authService.resendVerificationEmail(email);
+        return ok(message);
     }
 
     private String extractRefreshTokenFromCookies(HttpServletRequest request) {

@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     UserDetails findByEmail(@NotNull(message = "Email cannot be null") String email);
@@ -21,6 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
                     u.code,
                     u.email,
                     u.gender,
+                    u.role.id,
                     u.role.name,
                     u.isActive
                 )
@@ -41,6 +44,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
                     u.code,
                     u.email,
                     u.gender,
+                    u.role.id,
                     u.role.name,
                     u.isActive
                 )
@@ -52,4 +56,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
                 AND (:isActive IS NULL OR u.isActive = :isActive)
             """)
     Page<UserBaseResponse> getUserByRole(String keyword, Boolean isActive, Pageable pageable, Long roleId);
+
+    Optional<User> findByVerificationToken(String token);
+
+    boolean existsByEmail(String email);
+
+     Optional<User> findById(Long id);
 }

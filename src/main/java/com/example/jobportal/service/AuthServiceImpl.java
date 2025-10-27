@@ -12,7 +12,9 @@ import com.example.jobportal.repository.RefreshTokenRepository;
 import com.example.jobportal.repository.RoleRepository;
 import com.example.jobportal.repository.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,7 +27,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
+import static com.fasterxml.jackson.databind.type.LogicalType.DateTime;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -36,6 +42,7 @@ public class AuthServiceImpl implements AuthService{
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
+    private final EmailService emailService;
 
     @Value("${spring.jwt.access-expiration}")
     private Long accessTokenExpiration;
@@ -44,21 +51,29 @@ public class AuthServiceImpl implements AuthService{
     private Long refreshTokenExpiration;
 
     @Override
+    @Transactional
     public AuthResponse register(RegisterRequest request, HttpServletResponse response) {
-        User existingUser = (User) userRepository.findByEmail(request.getEmail());
-        if (existingUser != null) {
-            throw new RuntimeException("Email đã tồn tại");
+        log.info("📝 Starting registration for email: {}", request.getEmail());
+        if (userRepository.existsByEmail(request.getEmail())) {
+            log.warn("⚠️ Email already exists: {}", request.getEmail());
         }
+        Role role = roleRepository.findById(request.getRoleId())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid role ID"));
 
+        String token = UUID.randomUUID().toString();
         User user = User.builder().email(request.getEmail()).
                 passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .gender(request.getGender())
+                .role(role)
+                .isEmailVerified(false)
+                .verificationToken(token)
                 .build();
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid role ID"));
-        user.setRole(role);
         userRepository.save(user);
+        log.info("✅ User created successfully with ID: {}", user.getId());
+        emailService.sendVerificationEmail(user, user.getVerificationToken());
+        log.info("📧 Verification email triggered (async) for: {}", user.getEmail());
+        log.info("✅ Registration completed in ~200-300ms");
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
         saveRefreshToken(user, refreshToken);
@@ -68,6 +83,7 @@ public class AuthServiceImpl implements AuthService{
     }
 
     @Override
+    @Transactional
     public AuthResponse login(LoginRequest request, HttpServletResponse response) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -76,9 +92,11 @@ public class AuthServiceImpl implements AuthService{
                 )
         );
         User user = (User) authentication.getPrincipal();
+        user.setLastLoginAt(LocalDateTime.now());
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
         refreshTokenRepository.deleteByUserId(user.getId());
+        userRepository.save(user);
         saveRefreshToken(user, refreshToken);
         addTokenCookie(response, "access_token", accessToken, Duration.ofMillis(accessTokenExpiration));
         addTokenCookie(response, "refresh_token", refreshToken, Duration.ofMillis(refreshTokenExpiration));
@@ -117,6 +135,47 @@ public class AuthServiceImpl implements AuthService{
         return createAuthResponse(null, null, user);
     }
 
+    @Override
+    public String verifyEmail(String token) {
+        User user = userRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new RuntimeException("Token không hợp lệ!"));
+
+        if (user.getIsEmailVerified()) {
+            throw new RuntimeException("Email đã được xác nhận trước đó!");
+        }
+
+        if (user.isTokenExpired()) {
+            throw new RuntimeException("Token đã hết hạn! Vui lòng yêu cầu gửi lại email xác nhận.");
+        }
+
+        user.setIsEmailVerified(true);
+        userRepository.save(user);
+
+        return "Email đã được xác nhận thành công! Bạn có thể đăng nhập ngay.";
+    }
+
+    @Override
+    public String resendVerificationEmail(String email) {
+        User user = (User) userRepository.findByEmail(email);
+
+        if (user == null) {
+            throw new RuntimeException("Email không tồn tại!");
+        }
+
+        if (user.getIsEmailVerified()) {
+            throw new RuntimeException("Email đã được xác nhận!");
+        }
+
+        String token = UUID.randomUUID().toString();
+        user.setVerificationToken(token);
+        userRepository.save(user);
+
+        emailService.sendVerificationEmail(user, token);
+
+        return "Email xác nhận đã được gửi lại!";
+    }
+
+
     private void saveRefreshToken(User user, String token) {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setToken(token);
@@ -132,7 +191,7 @@ public class AuthServiceImpl implements AuthService{
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .maxAge(0)                // Set Max-Age = 0 để xóa
+                .maxAge(0)
                 .sameSite("Lax")
                 .build();
 
@@ -143,7 +202,7 @@ public class AuthServiceImpl implements AuthService{
         userResponse.setId(user.getId());
         userResponse.setEmail(user.getEmail());
         userResponse.setFullName(user.getFullName());
-        userResponse.setRole(user.getRole());
+        userResponse.setRoleName(user.getRole().getName());
 
         AuthResponse authResponse = new AuthResponse();
         authResponse.setAccessToken(accessToken);

@@ -21,6 +21,7 @@ public interface JobService {
     void changeStatusJob(Long jobId,String status);
     Page<JobBaseResponse> getJobsByHr(String keyword, String category, String location,String status,Long hrId, Pageable pageable);
     Page<JobBaseResponse> getJobsByCompany(String keyword, String category, String location,String status,Long companyId, Pageable pageable);
-
+    JobBaseResponse addJobToListSavedJob(Long jobId, Long userId);
+    void removeJobFromListSavedJob(Long savedJobId);
 
 }

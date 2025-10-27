@@ -10,7 +10,9 @@ import lombok.*;
 @Setter
 @Embeddable
 public class BaseAddress {
-    private String address;
+    private String street;
+    private String ward;
+    private String district;
     private String city;
     private String country;
 }

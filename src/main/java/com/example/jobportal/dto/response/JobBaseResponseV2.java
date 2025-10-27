@@ -21,18 +21,20 @@ public class JobBaseResponseV2 extends JobBaseResponse {
     private Integer numberOfPositions;
     private LocalDateTime applicationDeadline;
     private List<String> categoryNames;
+    private String country; // Thêm trường country
 
-    // Constructor mặc định - BẮT BUỘC
     public JobBaseResponseV2() {
         super();
     }
 
-    // Constructor đầy đủ cho JPQL - QUAN TRỌNG!
     public JobBaseResponseV2(
             Long id,
             String title,
             String companyName,
-            String address,
+            String street,
+            String ward,
+            String district,
+            String city,
             String companyLogo,
             Boolean isSalaryNegotiable,
             BigDecimal salaryMin,
@@ -46,7 +48,7 @@ public class JobBaseResponseV2 extends JobBaseResponse {
             String categoryNames  // String từ STRING_AGG
     ) {
         // Gọi constructor của class cha
-        super(id, title, companyName, address, companyLogo,
+        super(id, title, companyName, street, ward, district, city, companyLogo,
                 isSalaryNegotiable, salaryMin, salaryMax, salaryCurrency);
 
         // Set các field của class con
@@ -55,8 +57,8 @@ public class JobBaseResponseV2 extends JobBaseResponse {
         this.experienceLevel = experienceLevel;
         this.numberOfPositions = numberOfPositions;
         this.applicationDeadline = applicationDeadline;
+        this.country = country;
 
-        // Chuyển String thành List<String>
         if (categoryNames != null && !categoryNames.trim().isEmpty()) {
             this.categoryNames = Arrays.asList(categoryNames.split(",\\s*"));
         } else {
@@ -73,7 +75,11 @@ public class JobBaseResponseV2 extends JobBaseResponse {
                 .title(job.getTitle())
                 .companyName(job.getCompany().getName())
                 .companyLogo(job.getCompany().getLogoUrl())
-                .address(job.getAddress() != null ? job.getAddress().getAddress() : null)
+                .street(job.getAddress().getStreet())
+                .ward(job.getAddress().getWard())
+                .district(job.getAddress().getDistrict())
+                .city(job.getAddress().getCity())
+                .country(job.getAddress().getCountry())
                 .isSalaryNegotiable(job.getIsSalaryNegotiable())
                 .salaryMin(job.getSalaryMin())
                 .salaryMax(job.getSalaryMax())

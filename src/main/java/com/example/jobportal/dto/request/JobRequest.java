@@ -30,8 +30,9 @@ public class JobRequest {
     @NotBlank(message = "Benefits are required")
     private String benefits;
 
-    // Address fields
-    private String address;
+    private String street;
+    private String ward;
+    private String district;
     private String city;
     private String country;
 
