@@ -1,11 +1,14 @@
 package com.example.jobportal.model.entity;
 
+import com.example.jobportal.converter.CompanyVerificationStatusConverter;
+import com.example.jobportal.model.enums.CompanyVerificationStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import java.time.LocalDateTime;
-
+@Builder
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,6 +30,15 @@ public class CompanyVerificationRequest extends BaseEntity {
             message = "Mã số thuế không hợp lệ")
     private String taxCode;
 
+    @Column(unique = true)
+    @NotNull(message = "Company name cannot be null")
+    private String name;
+
+    @Column(unique = true)
+    @NotNull(message = "Company email cannot be null")
+    private String email;
+
+
     private String contactPerson;
 
     private String contactEmail;
@@ -34,16 +46,21 @@ public class CompanyVerificationRequest extends BaseEntity {
     private String contactPhone;
 
     @Column(columnDefinition = "jsonb")
-    private String documents; // JSONB trong PostgreSQL: chứa link file giấy phép, ủy quyền...
+    private String documents;
 
-    private String requestedRole; // 'hr' hoặc 'company_admin'
+    private String requestedRole;
 
-    private String status = "pending"; // 'pending', 'approved', 'rejected'
+    @Convert(converter = CompanyVerificationStatusConverter.class)
+    private CompanyVerificationStatus status = CompanyVerificationStatus.PENDING;
 
     @Column(columnDefinition = "TEXT")
-    private String adminNotes; // ghi chú của admin
+    private String adminNotes;
+
+    private String rejectionReason;
 
     private LocalDateTime reviewedAt;
+
+    private BaseAddress address;
 
 
     // --- Relationships ---

@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 
 @Data
 @SuperBuilder
-
 @NoArgsConstructor
 @AllArgsConstructor
 public class JobBaseResponse {

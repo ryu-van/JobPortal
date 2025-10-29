@@ -2,7 +2,7 @@ package com.example.jobportal.service;
 
 import com.example.jobportal.security.JwtAuthenticationFilter;
 import com.example.jobportal.dto.request.LoginRequest;
-import com.example.jobportal.dto.request.RegisterRequest;
+import com.example.jobportal.dto.request.RegisterUserRequest;
 import com.example.jobportal.dto.response.AuthResponse;
 import com.example.jobportal.dto.response.UserBaseResponse;
 import com.example.jobportal.model.entity.RefreshToken;
@@ -12,7 +12,6 @@ import com.example.jobportal.repository.RefreshTokenRepository;
 import com.example.jobportal.repository.RoleRepository;
 import com.example.jobportal.repository.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,8 +27,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
-
-import static com.fasterxml.jackson.databind.type.LogicalType.DateTime;
 
 @Slf4j
 @Service
@@ -52,28 +49,29 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     @Transactional
-    public AuthResponse register(RegisterRequest request, HttpServletResponse response) {
+    public AuthResponse register(RegisterUserRequest request, HttpServletResponse response) {
         log.info("📝 Starting registration for email: {}", request.getEmail());
         if (userRepository.existsByEmail(request.getEmail())) {
-            log.warn("⚠️ Email already exists: {}", request.getEmail());
+            log.warn("Email already exists: {}", request.getEmail());
         }
         Role role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid role ID"));
-
         String token = UUID.randomUUID().toString();
+        String code = String.format("USER-%s", UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         User user = User.builder().email(request.getEmail()).
                 passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
+                .code(code)
                 .gender(request.getGender())
                 .role(role)
                 .isEmailVerified(false)
                 .verificationToken(token)
                 .build();
         userRepository.save(user);
-        log.info("✅ User created successfully with ID: {}", user.getId());
+        log.info("User created successfully with ID: {}", user.getId());
         emailService.sendVerificationEmail(user, user.getVerificationToken());
-        log.info("📧 Verification email triggered (async) for: {}", user.getEmail());
-        log.info("✅ Registration completed in ~200-300ms");
+        log.info("Verification email triggered (async) for: {}", user.getEmail());
+        log.info("Registration completed in ~200-300ms");
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
         saveRefreshToken(user, refreshToken);
