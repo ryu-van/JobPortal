@@ -24,6 +24,8 @@ public class Company extends BaseEntity {
     @NotNull(message = "Company email cannot be null")
     private String email;
 
+    private String phone;
+
     private String description;
 
     private String industry;
@@ -42,6 +44,7 @@ public class Company extends BaseEntity {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
 
 
 

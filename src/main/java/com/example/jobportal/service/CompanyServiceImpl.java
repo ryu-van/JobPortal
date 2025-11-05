@@ -21,8 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -33,8 +33,16 @@ public class CompanyServiceImpl implements CompanyService {
     private final UserRepository userRepository;
 
     @Override
-    public Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(String keyword, String verifyStatus, Date createdDate, Pageable pageable) {
-        return  companyVerificationRequestRepository.getAllCompanyVerificationRequest(keyword, CompanyVerificationStatus.valueOf(verifyStatus),createdDate,pageable);
+    public Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(String keyword, String verifyStatus, LocalDate createdDate, Pageable pageable) {
+        CompanyVerificationStatus status = null;
+        if (verifyStatus != null && !verifyStatus.equalsIgnoreCase("ALL")) {
+            try {
+                status = CompanyVerificationStatus.valueOf(verifyStatus.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw CompanyException.badRequest("Invalid verification status: " + verifyStatus);
+            }
+        }
+        return companyVerificationRequestRepository.getAllCompanyVerificationRequest(keyword, status, createdDate, pageable);
     }
 
     @Override
@@ -57,13 +65,11 @@ public class CompanyServiceImpl implements CompanyService {
                 .orElseThrow(() -> CompanyException.notFound("Company not found with id: " + companyId));
 
 
-        if (companyRequest.getName() != null) {
-            company.setName(companyRequest.getName());
-        }
-        if (companyRequest.getEmail() != null) {
-            company.setEmail(companyRequest.getEmail());
-        }
-        if (companyRequest.getStreet() != null & companyRequest.getCity() != null & companyRequest.getWard() != null & companyRequest.getCountry() != null & companyRequest.getDistrict() != null) {
+        if (companyRequest.getName() != null) company.setName(companyRequest.getName());
+        if (companyRequest.getEmail() != null) company.setEmail(companyRequest.getEmail());
+        if (companyRequest.getStreet() != null && companyRequest.getCity() != null
+                && companyRequest.getWard() != null && companyRequest.getCountry() != null
+                && companyRequest.getDistrict() != null) {
             BaseAddress baseAddress = new BaseAddress();
             baseAddress.setStreet(companyRequest.getStreet());
             baseAddress.setCity(companyRequest.getCity());
@@ -83,25 +89,20 @@ public class CompanyServiceImpl implements CompanyService {
         }
 
         Company updatedCompany = companyRepository.save(company);
-        log.info("Successfully updated company with id: {}", companyId);
-
         return CompanyBaseResponse.fromEntity(updatedCompany);
     }
 
     @Override
     @Transactional(readOnly = true)
     public CompanyBaseResponse getCompanyById(Long companyId) {
-        log.debug("Getting company by id: {}", companyId);
-
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> CompanyException.notFound("Company not found with id: " + companyId));
-
         return CompanyBaseResponse.fromEntity(company);
     }
 
     @Override
     @Transactional
-    public CompanyBaseResponse createCompanyVerificationRequest(NewCompanyVerificationRequest request) {
+    public CompanyVerificationRequestResponse createCompanyVerificationRequest(NewCompanyVerificationRequest request) {
         log.info("Creating company verification request for user id: {}", request.getSenderId());
 
         validateCompanyVerificationRequest(request);
@@ -117,8 +118,7 @@ public class CompanyServiceImpl implements CompanyService {
         BaseAddress address = createBaseAddress(request);
 
         CompanyVerificationRequest verificationRequest = CompanyVerificationRequest.builder()
-                .name(request.getName())
-                .email(request.getEmail())
+                .companyName(request.getCompanyName())
                 .businessLicense(request.getBusinessLicense())
                 .taxCode(request.getTaxCode())
                 .contactPerson(request.getContactPerson())
@@ -134,7 +134,7 @@ public class CompanyServiceImpl implements CompanyService {
         CompanyVerificationRequest savedRequest = companyVerificationRequestRepository.save(verificationRequest);
         log.info("Successfully created company verification request with id: {}", savedRequest.getId());
 
-        return CompanyBaseResponse.fromEntity(savedRequest.getCompany());
+        return CompanyVerificationRequestResponse.fromEntity(savedRequest);
     }
 
     @Override
@@ -172,7 +172,6 @@ public class CompanyServiceImpl implements CompanyService {
         CompanyVerificationRequest verificationRequest = companyVerificationRequestRepository.findById(requestId)
                 .orElseThrow(() -> CompanyException.notFound("Company verification request not found with id: " + requestId));
 
-        // Only allow updates for PENDING or REJECTED requests
         if (verificationRequest.getStatus() == CompanyVerificationStatus.APPROVED) {
             throw CompanyException.badRequest("Cannot update an approved verification request");
         }
@@ -182,9 +181,7 @@ public class CompanyServiceImpl implements CompanyService {
 
         BaseAddress address = createBaseAddress(request);
 
-        // Update fields
-        verificationRequest.setName(request.getName());
-        verificationRequest.setEmail(request.getEmail());
+        verificationRequest.setCompanyName(request.getCompanyName());
         verificationRequest.setBusinessLicense(request.getBusinessLicense());
         verificationRequest.setTaxCode(request.getTaxCode());
         verificationRequest.setContactPerson(request.getContactPerson());
@@ -236,25 +233,23 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public void reviewCompanyVerificationRequest(Long requestId, Long reviewedById, boolean isApproved, String reason) {
-        log.info("Reviewing company verification request with id: {} by reviewer id: {}, approved: {}",
-                requestId, reviewedById, isApproved);
+        log.info("Reviewing company verification request id: {}", requestId);
 
         CompanyVerificationRequest verificationRequest = companyVerificationRequestRepository.findById(requestId)
                 .orElseThrow(() -> CompanyException.notFound("Company verification request not found with id: " + requestId));
 
-        // Check if request is in pending status
         if (verificationRequest.getStatus() != CompanyVerificationStatus.PENDING) {
-            throw CompanyException.badRequest("Only pending requests can be reviewed. Current status: " + verificationRequest.getStatus());
+            throw CompanyException.badRequest("Only pending requests can be reviewed");
         }
 
         User reviewer = userRepository.findById(reviewedById)
                 .orElseThrow(() -> CompanyException.notFound("Reviewer not found with id: " + reviewedById));
 
         if (isApproved) {
-            // Create new company
             Company newCompany = Company.builder()
-                    .name(verificationRequest.getName())
-                    .email(verificationRequest.getEmail())
+                    .name(verificationRequest.getCompanyName())
+                    .email(verificationRequest.getContactEmail())
+                    .phone(verificationRequest.getContactPhone())
                     .address(verificationRequest.getAddress())
                     .isVerified(true)
                     .isActive(true)
@@ -263,11 +258,9 @@ public class CompanyServiceImpl implements CompanyService {
             Company savedCompany = companyRepository.save(newCompany);
             log.info("Created new company with id: {}", savedCompany.getId());
 
-            // Update verification request
             verificationRequest.setCompany(savedCompany);
             verificationRequest.setStatus(CompanyVerificationStatus.APPROVED);
         } else {
-            // Reject request
             if (reason == null || reason.trim().isEmpty()) {
                 throw CompanyException.badRequest("Rejection reason is required");
             }
@@ -280,8 +273,6 @@ public class CompanyServiceImpl implements CompanyService {
         verificationRequest.setReviewedAt(LocalDateTime.now());
 
         companyVerificationRequestRepository.save(verificationRequest);
-        log.info("Successfully {} company verification request with id: {}",
-                isApproved ? "approved" : "rejected", requestId);
     }
 
     // Helper methods
@@ -299,10 +290,10 @@ public class CompanyServiceImpl implements CompanyService {
         if (request == null) {
             throw CompanyException.badRequest("Company verification request cannot be null");
         }
-        if (request.getName() == null || request.getName().trim().isEmpty()) {
+        if (request.getCompanyName() == null || request.getCompanyName().trim().isEmpty()) {
             throw CompanyException.badRequest("Company name is required");
         }
-        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+        if (request.getContactEmail() == null || request.getContactEmail().trim().isEmpty()) {
             throw CompanyException.badRequest("Company email is required");
         }
         if (request.getTaxCode() == null || request.getTaxCode().trim().isEmpty()) {

@@ -8,15 +8,16 @@ import com.example.jobportal.dto.response.CompanyVerificationRequestResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.Date;
 
 public interface CompanyService {
 
-    Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(String keyword, String verifyStatus, Date createdDate, Pageable pageable);
+    Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(String keyword, String verifyStatus, LocalDate createdDate, Pageable pageable);
     Page<CompanyBaseResponse> getAllCompanies(String keyword, String location, Boolean isActive, Pageable pageable);
     CompanyBaseResponse updateCompany(Long companyId, UpdateCompanyRequest companyRequest);
     CompanyBaseResponse getCompanyById(Long companyId);
-    CompanyBaseResponse createCompanyVerificationRequest(NewCompanyVerificationRequest newCompanyVerificationRequest);
+    CompanyVerificationRequestResponse  createCompanyVerificationRequest(NewCompanyVerificationRequest newCompanyVerificationRequest);
     CompanyVerificationRequestDetailResponse getCompanyVerificationRequestByCompanyId(Long companyId);
     CompanyVerificationRequestDetailResponse getCompanyVerificationRequestById(Long companyVerificationRequestId);
     CompanyBaseResponse updateCompanyVerificationRequest(Long companyVerificationRequestId, NewCompanyVerificationRequest newCompanyVerificationRequest);

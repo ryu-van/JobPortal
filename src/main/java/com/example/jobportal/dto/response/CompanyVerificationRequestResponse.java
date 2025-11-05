@@ -21,7 +21,7 @@ public class CompanyVerificationRequestResponse {
     private String senderName;
     private Date createdAt;
 
-    private static CompanyVerificationRequestResponse fromEntity(CompanyVerificationRequest companyVerificationRequest) {
+    public static CompanyVerificationRequestResponse fromEntity(CompanyVerificationRequest companyVerificationRequest) {
         String address = companyVerificationRequest.getAddress().getStreet()+", "+
                 companyVerificationRequest.getAddress().getWard()+", "+
                 companyVerificationRequest.getAddress().getDistrict()+", "+
@@ -29,8 +29,8 @@ public class CompanyVerificationRequestResponse {
                 companyVerificationRequest.getAddress().getCountry();
         CompanyVerificationRequestResponse response = new CompanyVerificationRequestResponse();
         response.id = companyVerificationRequest.getId();
-        response.companyName = companyVerificationRequest.getName();
-        response.companyEmail = companyVerificationRequest.getEmail();
+        response.companyName = companyVerificationRequest.getCompanyName();
+        response.companyEmail = companyVerificationRequest.getContactEmail();
         response.status = companyVerificationRequest.getStatus();
         response.senderName = companyVerificationRequest.getContactPerson();
         response.createdAt = companyVerificationRequest.getCreatedAt();

@@ -5,7 +5,6 @@ import com.example.jobportal.dto.response.UserBaseResponse;
 import com.example.jobportal.dto.response.UserDetailResponse;
 import com.example.jobportal.exception.UserException;
 import com.example.jobportal.model.entity.BaseAddress;
-import com.example.jobportal.model.entity.Company;
 import com.example.jobportal.model.entity.User;
 import com.example.jobportal.model.enums.Role;
 import com.example.jobportal.repository.CompanyRepository;

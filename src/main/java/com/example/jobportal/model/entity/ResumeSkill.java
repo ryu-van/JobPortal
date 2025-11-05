@@ -22,7 +22,7 @@ public class ResumeSkill {
 
     private String proficiencyLevel;
 
-    private Integer YearsOfExperience;
+    private Integer yearsOfExperience;
 
     @ManyToOne
     @JoinColumn(name = "resume_id", nullable = false)

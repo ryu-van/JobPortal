@@ -32,12 +32,7 @@ public class CompanyVerificationRequest extends BaseEntity {
 
     @Column(unique = true)
     @NotNull(message = "Company name cannot be null")
-    private String name;
-
-    @Column(unique = true)
-    @NotNull(message = "Company email cannot be null")
-    private String email;
-
+    private String companyName;
 
     private String contactPerson;
 

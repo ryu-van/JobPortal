@@ -14,12 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class NewCompanyVerificationRequest {
     @NotBlank(message = "Tên công ty không được để trống")
-    private String name;
-
-    @Email(message = "Email công ty không hợp lệ")
-    @NotBlank(message = "Email công ty không được để trống")
-    private String email;
-
+    private String companyName;
 
     @NotBlank(message = "Giấy phép kinh doanh không được để trống")
     private String businessLicense;
@@ -29,6 +24,9 @@ public class NewCompanyVerificationRequest {
     private String taxCode;
 
     private String contactPerson;
+
+    @Email(message = "Email công ty không hợp lệ")
+    @NotBlank(message = "Email công ty không được để trống")
     private String contactEmail;
     private String contactPhone;
 

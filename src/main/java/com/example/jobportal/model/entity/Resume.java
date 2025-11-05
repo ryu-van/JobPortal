@@ -3,11 +3,12 @@ package com.example.jobportal.model.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
+@Builder
 @Setter
 @Getter
 @AllArgsConstructor
@@ -30,12 +31,21 @@ public class Resume extends BaseEntity {
 
     private String summary;
 
-    private Boolean isPrimary;
-
-    private Boolean isPublic;
+    private Boolean isPrimary = false;
+    private Boolean isPublic = false;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ResumeEducation> educations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ResumeExperience> experiences = new ArrayList<>();
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ResumeSkill> skills = new ArrayList<>();
+
 
 }
