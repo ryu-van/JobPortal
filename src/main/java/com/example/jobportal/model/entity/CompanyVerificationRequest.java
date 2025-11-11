@@ -58,7 +58,6 @@ public class CompanyVerificationRequest extends BaseEntity {
     private BaseAddress address;
 
 
-    // --- Relationships ---
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user; // HR hoặc người gửi yêu cầu

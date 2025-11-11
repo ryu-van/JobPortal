@@ -45,13 +45,11 @@ public class JobBaseResponseV2 extends JobBaseResponse {
             String experienceLevel,
             Integer numberOfPositions,
             LocalDateTime applicationDeadline,
-            String categoryNames  // String từ STRING_AGG
+            String categoryNames
     ) {
-        // Gọi constructor của class cha
         super(id, title, companyName, street, ward, district, city, companyLogo,
                 isSalaryNegotiable, salaryMin, salaryMax, salaryCurrency);
 
-        // Set các field của class con
         this.workType = workType;
         this.employmentType = employmentType;
         this.experienceLevel = experienceLevel;

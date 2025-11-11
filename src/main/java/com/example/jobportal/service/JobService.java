@@ -14,7 +14,7 @@ public interface JobService {
     // feature for customer
     Page<JobBaseResponse> getBaseJobs(String keyword, String category, String location, Pageable pageable);
     Page<JobBaseResponseV2> getJobs(String keyword, String category, String location, Pageable pageable);
-    JobDetailResponse getJobDetail(Long jobId);
+    JobDetailResponse getJobDetail(Long jobId, Long userId);
     // feature for hr,admin company, admin system
     Job createJob(JobRequest jobRequest);
     Job updateJob(Long jobId, JobRequest jobRequest);

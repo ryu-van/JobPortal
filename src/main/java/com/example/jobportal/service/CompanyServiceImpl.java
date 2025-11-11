@@ -11,6 +11,7 @@ import com.example.jobportal.model.entity.Company;
 import com.example.jobportal.model.entity.CompanyVerificationRequest;
 import com.example.jobportal.model.entity.User;
 import com.example.jobportal.model.enums.CompanyVerificationStatus;
+import com.example.jobportal.model.enums.NotificationType;
 import com.example.jobportal.repository.CompanyRepository;
 import com.example.jobportal.repository.CompanyVerificationRequestRepository;
 import com.example.jobportal.repository.UserRepository;
@@ -31,6 +32,7 @@ public class CompanyServiceImpl implements CompanyService {
     private final CompanyRepository companyRepository;
     private final CompanyVerificationRequestRepository companyVerificationRequestRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     public Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(String keyword, String verifyStatus, LocalDate createdDate, Pageable pageable) {
@@ -133,6 +135,14 @@ public class CompanyServiceImpl implements CompanyService {
 
         CompanyVerificationRequest savedRequest = companyVerificationRequestRepository.save(verificationRequest);
         log.info("Successfully created company verification request with id: {}", savedRequest.getId());
+        notificationService.createNotificationForRole(
+                "ADMIN",
+                "Yêu cầu xác minh công ty mới",
+                sender.getFullName() + " vừa gửi yêu cầu xác minh công ty: " + savedRequest.getCompanyName(),
+                NotificationType.COMPANY_VERIFY_REQUESTED.name(),
+                savedRequest.getId(),
+                "COMPANY_VERIFICATION_REQUEST"
+        );
 
         return CompanyVerificationRequestResponse.fromEntity(savedRequest);
     }
@@ -273,6 +283,27 @@ public class CompanyServiceImpl implements CompanyService {
         verificationRequest.setReviewedAt(LocalDateTime.now());
 
         companyVerificationRequestRepository.save(verificationRequest);
+
+        User requester = verificationRequest.getUser();
+        if (isApproved) {
+            notificationService.createNotification(
+                    requester.getId(),
+                    "Yêu cầu xác minh công ty được duyệt",
+                    "Công ty '" + verificationRequest.getCompanyName() + "' đã được xác minh thành công.",
+                    NotificationType.COMPANY_VERIFIED.name(),
+                    verificationRequest.getId(),
+                    "COMPANY_VERIFICATION_REQUEST"
+            );
+        } else {
+            notificationService.createNotification(
+                    requester.getId(),
+                    "Yêu cầu xác minh công ty bị từ chối",
+                    "Yêu cầu xác minh công ty '" + verificationRequest.getCompanyName() + "' đã bị từ chối. Lý do: " + reason,
+                    NotificationType.COMPANY_REJECTED.name(),
+                    verificationRequest.getId(),
+                    "COMPANY_VERIFICATION_REQUEST"
+            );
+        }
     }
 
     // Helper methods

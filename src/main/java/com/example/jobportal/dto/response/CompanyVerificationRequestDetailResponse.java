@@ -58,8 +58,8 @@ public class CompanyVerificationRequestDetailResponse {
         companyVerificationRequestDetailResponse.setId(companyVerificationRequest.getId());
         companyVerificationRequestDetailResponse.setBusinessLicense(companyVerificationRequest.getBusinessLicense());
         companyVerificationRequestDetailResponse.setTaxCode(companyVerificationRequest.getTaxCode());
-        companyVerificationRequestDetailResponse.setName(companyVerificationRequest.getName());
-        companyVerificationRequestDetailResponse.setEmail(companyVerificationRequest.getEmail());
+        companyVerificationRequestDetailResponse.setName(companyVerificationRequest.getCompanyName());
+        companyVerificationRequestDetailResponse.setEmail(companyVerificationRequest. getContactEmail());
         companyVerificationRequestDetailResponse.setContactPerson(companyVerificationRequest.getContactPerson());
         companyVerificationRequestDetailResponse.setContactEmail(companyVerificationRequest.getContactEmail());
         companyVerificationRequestDetailResponse.setContactPhone(companyVerificationRequest.getContactPhone());

@@ -27,6 +27,8 @@ public class JobBaseResponse {
     private BigDecimal salaryMax;
     private String salaryCurrency;
 
+
+
     public static JobBaseResponse fromEntity(Job job) {
         return JobBaseResponse.builder()
                 .id(job.getId())

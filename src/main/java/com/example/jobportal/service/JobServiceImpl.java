@@ -8,6 +8,7 @@ import com.example.jobportal.exception.UserException;
 import com.example.jobportal.model.entity.*;
 import com.example.jobportal.model.enums.JobStatus;
 import com.example.jobportal.exception.JobException;
+import com.example.jobportal.model.enums.NotificationType;
 import com.example.jobportal.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -29,6 +31,8 @@ public class JobServiceImpl implements JobService {
     private final JobCategoryRepository jobCategoryRepository;
     private final SavedJobRepository savedJobRepository;
     private final UserRepository userRepository;
+    private final ApplicationRepository applicationRepository;
+    private final NotificationService notificationService;
 
     @Override
     public Page<JobBaseResponse> getBaseJobs(String keyword, String category, String location, Pageable pageable) {
@@ -39,26 +43,25 @@ public class JobServiceImpl implements JobService {
     public Page<JobBaseResponseV2> getJobs(String keyword, String category, String location, Pageable pageable) {
         Page<Object[]> results = jobRepository.getJobsNative(keyword, category, location, pageable);
 
-        // Chuyển Object[] sang DTO
         return results.map(row -> new JobBaseResponseV2(
-                ((Number) row[0]).longValue(),                   // j.id
-                (String) row[1],                                 // j.title
-                (String) row[2],                                 // company_name
+                ((Number) row[0]).longValue(),
+                (String) row[1],
+                (String) row[2],
                 (String) row[3],
                 (String) row[4],
                 (String) row[5],
                 (String) row[6],
-                (String) row[7],                                 // company_logo
-                row[8] != null && (Boolean) row[8],              // is_salary_negotiable
-                (BigDecimal) row[9],                             // salary_min
-                (BigDecimal) row[10],                             // salary_max
-                (String) row[11],                                 // salary_currency
-                (String) row[12],                                 // work_type
-                (String) row[13],                                // employment_type
-                (String) row[14],                                // experience_level
-                row[15] != null ? ((Number) row[15]).intValue() : null,  // number_of_positions
-                row[16] != null ? ((Timestamp) row[16]).toLocalDateTime() : null, // application_deadline
-                (String) row[17]                                 // category_names (STRING_AGG)
+                (String) row[7],
+                row[8] != null && (Boolean) row[8],
+                (BigDecimal) row[9],
+                (BigDecimal) row[10],
+                (String) row[11],
+                (String) row[12],
+                (String) row[13],
+                (String) row[14],
+                row[15] != null ? ((Number) row[15]).intValue() : null,
+                row[16] != null ? ((Timestamp) row[16]).toLocalDateTime() : null,
+                (String) row[17]
         ));
     }
 
@@ -75,13 +78,25 @@ public class JobServiceImpl implements JobService {
         if (existingCategories.isEmpty()) {
             throw JobException.badRequest("No valid categories found");
         }
+
         Job job = new Job();
-        mapJobRequestToEntity(jobRequest,job,existingCompany,existingCategories);
+        mapJobRequestToEntity(jobRequest, job, existingCompany, existingCategories);
         if (job.getStatus() == JobStatus.PUBLISHED) {
             job.setPublishedAt(LocalDateTime.now());
         }
 
-        return jobRepository.save(job);
+        Job savedJob = jobRepository.save(job);
+
+        notificationService.createNotificationForRole(
+                "ADMIN",
+                "Tin tuyển dụng mới được đăng",
+                "Công ty '" + existingCompany.getName() + "' vừa đăng việc: " + savedJob.getTitle(),
+                NotificationType.JOB_CREATED.name(),
+                savedJob.getId(),
+                "JOB"
+        );
+
+        return savedJob;
     }
 
     @Override
@@ -99,27 +114,66 @@ public class JobServiceImpl implements JobService {
 
         Job existingJob = jobRepository.findById(jobId)
                 .orElseThrow(() -> JobException.notFound("Job not found"));
-        mapJobRequestToEntity(jobRequest,existingJob,existingCompany,existingCategories);
+        mapJobRequestToEntity(jobRequest, existingJob, existingCompany, existingCategories);
+
         if (existingJob.getStatus() == JobStatus.PUBLISHED) {
             existingJob.setPublishedAt(LocalDateTime.now());
         }
 
-        return jobRepository.save(existingJob);
+        Job updatedJob = jobRepository.save(existingJob);
+
+        notificationService.createNotificationForRole(
+                "ADMIN",
+                "Tin tuyển dụng được cập nhật",
+                "Công ty '" + existingCompany.getName() + "' vừa cập nhật tin: " + updatedJob.getTitle(),
+                NotificationType.JOB_UPDATED.name(),
+                updatedJob.getId(),
+                "JOB"
+        );
+
+        return updatedJob;
     }
 
     @Override
+    @Transactional
     public void changeStatusJob(Long jobId, String status) {
         Job existingJob = jobRepository.findById(jobId)
                 .orElseThrow(() -> JobException.notFound("Job not found"));
+
         existingJob.setStatus(JobStatus.valueOf(status));
         jobRepository.save(existingJob);
+
+        User hr = existingJob.getCreatedBy();
+        if (hr != null) {
+            notificationService.createNotification(
+                    hr.getId(),
+                    "Cập nhật trạng thái tin tuyển dụng",
+                    "Tin '" + existingJob.getTitle() + "' đã được chuyển sang trạng thái: " + status,
+                    NotificationType.JOB_STATUS_CHANGED.name(),
+                    existingJob.getId(),
+                    "JOB"
+            );
+        }
     }
 
     @Override
-    public JobDetailResponse getJobDetail(Long jobId) {
-        Job existingJob = jobRepository.findById(jobId)
+    public JobDetailResponse getJobDetail(Long jobId, Long userId) {
+        Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> JobException.notFound("Job not found"));
-        return JobDetailResponse.fromEntity(existingJob);
+
+        JobDetailResponse response = JobDetailResponse.fromEntity(job);
+
+        if (userId != null) {
+            Optional<Application> applicationOpt = applicationRepository.findByUserIdAndJobId(userId, jobId);
+            if (applicationOpt.isPresent()) {
+                response.setApplied(true);
+                response.setAppliedAt(applicationOpt.get().getAppliedAt());
+            }
+        } else {
+            response.setApplied(false);
+        }
+
+        return response;
     }
 
 
@@ -145,6 +199,14 @@ public class JobServiceImpl implements JobService {
             .user(existingUser)
             .build();
         savedJobRepository.save(savedJob);
+        notificationService.createNotification(
+                existingUser.getId(),
+                "Đã lưu tin tuyển dụng",
+                "Bạn đã lưu công việc: " + existingJob.getTitle(),
+                NotificationType.JOB_SAVED.name(),
+                existingJob.getId(),
+                "JOB"
+        );
         return JobBaseResponse.fromEntity(existingJob);
     }
 

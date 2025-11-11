@@ -10,11 +10,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    UserDetails findByEmail(@NotNull(message = "Email cannot be null") String email);
+    Optional<User> findByEmail(String email);
 
     @Query("""
                 SELECT new com.example.jobportal.dto.response.UserBaseResponse(
@@ -62,4 +63,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
      Optional<User> findById(Long id);
+
+    @Query("SELECT u FROM User u WHERE u.role.name = :roleName AND u.isActive = true")
+    List<User> findAllByRoleName(String roleName);
+
 }

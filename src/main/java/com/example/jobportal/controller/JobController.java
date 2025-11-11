@@ -2,6 +2,7 @@ package com.example.jobportal.controller;
 
 import com.example.jobportal.dto.request.JobRequest;
 import com.example.jobportal.dto.response.*;
+import com.example.jobportal.security.CustomUserDetails;
 import com.example.jobportal.service.JobService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,10 +57,17 @@ public class JobController extends BaseController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<JobDetailResponse>> getJob(@PathVariable Long id) {
-        JobDetailResponse jobDetailResponse = jobService.getJobDetail(id);
-        return ok("", jobDetailResponse);
+    public ResponseEntity<ApiResponse<JobDetailResponse>> getJobDetail(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        Long userId = (currentUser != null) ? currentUser.getId() : null;
+
+        JobDetailResponse response = jobService.getJobDetail(id, userId);
+        return ok("Get job detail successfully", response);
     }
+
+
 
     @GetMapping("/hr/{id}")
     public ResponseEntity<ApiResponse<List<JobBaseResponse>>> getHrJobs(
@@ -116,7 +125,7 @@ public class JobController extends BaseController {
         return ok("Job updated successfully", updatedJob);
     }
 
-    @PutMapping("/{id/status}")
+    @PutMapping("/{id}/status")
     public ResponseEntity<ApiResponse<Void>> updateJobStatus(
             @PathVariable Long id,
             @RequestParam String status) {

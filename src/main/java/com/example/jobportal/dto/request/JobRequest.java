@@ -74,7 +74,7 @@ public class JobRequest {
     private Long companyId;
 
     @NotEmpty(message = "At least one category is required")
-    private Set<Long> categoryIds; // Support multiple categories
+    private Set<Long> categoryIds;
 
     @AssertTrue(message = "Salary max must be greater than salary min")
     public boolean isSalaryRangeValid() {

@@ -20,7 +20,6 @@ public class ApiResponse<T> {
     private PageInfo pagination;
     private LocalDateTime timestamp = LocalDateTime.now();
 
-    // Constructor for success response with data
     public ApiResponse(boolean success, String message, T data) {
         this.success = success;
         this.message = message;
@@ -28,7 +27,6 @@ public class ApiResponse<T> {
         this.timestamp = LocalDateTime.now();
     }
 
-    // Constructor for error response with errors
     public ApiResponse(boolean success, String message, List<String> errors) {
         this.success = success;
         this.message = message;

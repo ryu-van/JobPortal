@@ -1,5 +1,6 @@
 package com.example.jobportal.model.entity;
 
+import com.example.jobportal.model.enums.ApplicationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -9,19 +10,26 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "applications")
+@Table(
+        name = "applications",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"job_id", "user_id"})
+        }
+)
 public class Application extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(columnDefinition = "TEXT")
     private String coverLetter;
 
-    private String status = "pending";
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ApplicationStatus status = ApplicationStatus.PENDING;
 
     private LocalDateTime appliedAt;
-
     private LocalDateTime reviewedAt;
 
     @Column(columnDefinition = "TEXT")

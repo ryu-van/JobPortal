@@ -18,26 +18,25 @@ public class CompanyInvitation {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable = false)
-    private Company company; // công ty mời
+    private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
-    // --- Invitation Details ---
     @Column(nullable = false, unique = true, length = 50)
-    private String code; // mã mời, ví dụ: ABC-HR-2024-XYZ
+    private String code;
 
     @Column(nullable = false, length = 50)
-    private String role = "hr"; // role được mời (thường là 'hr')
+    private String role = "hr";
 
-    private String email; // email người được mời (optional)
+    private String email;
 
     @Column(name = "max_uses")
-    private Integer maxUses = 1; // số lần dùng tối đa (1 = chỉ 1 HR dùng được)
+    private Integer maxUses = 1;
 
     @Column(name = "used_count")
-    private Integer usedCount = 0; // số lần đã dùng
+    private Integer usedCount = 0;
 
     @Column(nullable = false)
     private LocalDateTime expiresAt; // thời điểm hết hạn mã mời

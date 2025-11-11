@@ -1,5 +1,7 @@
 package com.example.jobportal.service;
 
+import com.example.jobportal.exception.UserException;
+import com.example.jobportal.security.CustomUserDetails;
 import com.example.jobportal.security.JwtAuthenticationFilter;
 import com.example.jobportal.dto.request.LoginRequest;
 import com.example.jobportal.dto.request.RegisterUserRequest;
@@ -89,7 +91,9 @@ public class AuthServiceImpl implements AuthService{
                         request.getPassword()
                 )
         );
-        User user = (User) authentication.getPrincipal();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
+
         user.setLastLoginAt(LocalDateTime.now());
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
@@ -154,11 +158,8 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     public String resendVerificationEmail(String email) {
-        User user = (User) userRepository.findByEmail(email);
-
-        if (user == null) {
-            throw new RuntimeException("Email không tồn tại!");
-        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> UserException.notFound("Email không tồn tại!"));
 
         if (user.getIsEmailVerified()) {
             throw new RuntimeException("Email đã được xác nhận!");
@@ -172,6 +173,7 @@ public class AuthServiceImpl implements AuthService{
 
         return "Email xác nhận đã được gửi lại!";
     }
+
 
 
     private void saveRefreshToken(User user, String token) {
