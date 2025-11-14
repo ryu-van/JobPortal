@@ -28,4 +28,10 @@ public class UserException extends RuntimeException {
     public static UserException forbidden(String message) {
         return new UserException(message, HttpStatus.FORBIDDEN);
     }
+
+    public static UserException illegal(String message) {
+        return new UserException(message, HttpStatus.CONFLICT);
+    }
+
+
 }

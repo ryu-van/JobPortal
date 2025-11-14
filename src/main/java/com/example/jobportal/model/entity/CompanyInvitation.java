@@ -39,9 +39,9 @@ public class CompanyInvitation {
     private Integer usedCount = 0;
 
     @Column(nullable = false)
-    private LocalDateTime expiresAt; // thời điểm hết hạn mã mời
+    private LocalDateTime expiresAt;
 
-    private Boolean isActive = true; // còn hoạt động hay không
+    private Boolean isActive = true;
 
     private LocalDateTime createdAt = LocalDateTime.now();
 

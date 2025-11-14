@@ -1,15 +1,15 @@
 package com.example.jobportal.service;
 
+import com.example.jobportal.exception.RoleException;
 import com.example.jobportal.exception.UserException;
+import com.example.jobportal.model.entity.*;
+import com.example.jobportal.repository.CompanyInvitationRepository;
 import com.example.jobportal.security.CustomUserDetails;
 import com.example.jobportal.security.JwtAuthenticationFilter;
 import com.example.jobportal.dto.request.LoginRequest;
 import com.example.jobportal.dto.request.RegisterUserRequest;
 import com.example.jobportal.dto.response.AuthResponse;
 import com.example.jobportal.dto.response.UserBaseResponse;
-import com.example.jobportal.model.entity.RefreshToken;
-import com.example.jobportal.model.entity.Role;
-import com.example.jobportal.model.entity.User;
 import com.example.jobportal.repository.RefreshTokenRepository;
 import com.example.jobportal.repository.RoleRepository;
 import com.example.jobportal.repository.UserRepository;
@@ -26,8 +26,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.authentication.AuthenticationManager;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.UUID;
 
 @Slf4j
@@ -42,6 +44,7 @@ public class AuthServiceImpl implements AuthService{
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
     private final EmailService emailService;
+    private CompanyService companyService;
 
     @Value("${spring.jwt.access-expiration}")
     private Long accessTokenExpiration;
@@ -53,34 +56,116 @@ public class AuthServiceImpl implements AuthService{
     @Transactional
     public AuthResponse register(RegisterUserRequest request, HttpServletResponse response) {
         log.info("📝 Starting registration for email: {}", request.getEmail());
+
+        // 🔹 Validate email uniqueness
         if (userRepository.existsByEmail(request.getEmail())) {
-            log.warn("Email already exists: {}", request.getEmail());
+            throw UserException.illegal("Email đã tồn tại, vui lòng đăng nhập hoặc xác thực tài khoản.");
         }
-        Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid role ID"));
-        String token = UUID.randomUUID().toString();
-        String code = String.format("USER-%s", UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        User user = User.builder().email(request.getEmail()).
-                passwordHash(passwordEncoder.encode(request.getPassword()))
+
+        Company company = null;
+        Role role;
+
+        // 🔹 Xử lý đăng ký qua mã mời
+        if (request.getCodeInvitation() != null && !request.getCodeInvitation().isBlank()) {
+            log.info("🎫 Processing invitation code: {}", request.getCodeInvitation());
+
+            CompanyInvitation invitation = companyService.findValidInvitation(request.getCodeInvitation())
+                    .orElseThrow(() -> new IllegalArgumentException("Mã mời không hợp lệ, đã hết hạn hoặc đã được sử dụng hết"));
+
+            // 🔹 Kiểm tra email match (nếu invitation có email cụ thể)
+            if (invitation.getEmail() != null && !invitation.getEmail().equalsIgnoreCase(request.getEmail())) {
+                throw new IllegalArgumentException("Email không khớp với mã mời. Mã mời này dành cho: " + invitation.getEmail());
+            }
+
+            company = invitation.getCompany();
+            role = (Role) roleRepository.findByName(invitation.getRole())
+                    .orElseThrow(() -> RoleException.notFound("Vai trò trong mã mời không hợp lệ: " + invitation.getRole()));
+
+            log.info("✅ Valid invitation found for company: {} (role: {})", company.getName(), invitation.getRole());
+        } else {
+            // 🔹 Đăng ký thông thường
+            role = roleRepository.findById(request.getRoleId())
+                    .orElseThrow(() -> RoleException.notFound("Invalid role ID: " + request.getRoleId()));
+
+            log.info("✅ Standard registration with role: {}", role.getName());
+        }
+
+        // 🔹 Tạo user code và OTP
+        String userCode = generateUserCode();
+        String otpToken = generateOTP();
+
+        // 🔹 Tạo user mới
+        User user = User.builder()
+                .email(request.getEmail())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
-                .code(code)
+                .code(userCode)
                 .gender(request.getGender())
                 .role(role)
+                .company(company)
+                .isActive(true)
                 .isEmailVerified(false)
-                .verificationToken(token)
+                .verificationToken(otpToken)
                 .build();
+
+        user.setVerificationToken(otpToken);
+
         userRepository.save(user);
-        log.info("User created successfully with ID: {}", user.getId());
-        emailService.sendVerificationEmail(user, user.getVerificationToken());
-        log.info("Verification email triggered (async) for: {}", user.getEmail());
-        log.info("Registration completed in ~200-300ms");
+        log.info("✅ User created successfully with ID: {} for company: {}",
+                user.getId(), company != null ? company.getName() : "N/A");
+
+        // 🔹 Sử dụng mã mời (nếu có) - Dùng service thay vì logic thủ công
+        if (request.getCodeInvitation() != null && !request.getCodeInvitation().isBlank()) {
+            try {
+                CompanyInvitation usedInvitation = companyService.useInvitation(request.getCodeInvitation());
+                log.info("🔁 Invitation {} used successfully ({}/{})",
+                        usedInvitation.getCode(),
+                        usedInvitation.getUsedCount(),
+                        usedInvitation.getMaxUses());
+            } catch (Exception e) {
+                log.error("❌ Failed to mark invitation as used: {}", e.getMessage());
+            }
+        }
+
+        try {
+            emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), otpToken);
+            log.info("📨 Verification email sent to {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("❌ Failed to send verification email: {}", e.getMessage());
+        }
+
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
         saveRefreshToken(user, refreshToken);
+
         addTokenCookie(response, "access_token", accessToken, Duration.ofMillis(accessTokenExpiration));
         addTokenCookie(response, "refresh_token", refreshToken, Duration.ofMillis(refreshTokenExpiration));
+
+        log.info("🎉 Registration completed successfully for {} (Company: {})",
+                user.getEmail(),
+                company != null ? company.getName() : "N/A");
+
         return createAuthResponse(accessToken, refreshToken, user);
     }
+
+    /**
+     * Tạo mã user duy nhất
+     */
+    private String generateUserCode() {
+        String code;
+        do {
+            code = String.format("USER-%s", UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        } while (userRepository.existsByCode(code));
+        return code;
+    }
+
+    /**
+     * Tạo OTP 6 chữ số
+     */
+    private String generateOTP() {
+        return String.format("%06d", new SecureRandom().nextInt(999999));
+    }
+
 
     @Override
     @Transactional
@@ -140,14 +225,18 @@ public class AuthServiceImpl implements AuthService{
     @Override
     public String verifyEmail(String token) {
         User user = userRepository.findByVerificationToken(token)
-                .orElseThrow(() -> new RuntimeException("Token không hợp lệ!"));
+                .orElseThrow(() -> UserException.notFound("Token không hợp lệ hoặc đã hết hạn."));
 
         if (user.getIsEmailVerified()) {
-            throw new RuntimeException("Email đã được xác nhận trước đó!");
+            throw UserException.illegal("Email đã được xác nhận trước đó!");
         }
 
         if (user.isTokenExpired()) {
-            throw new RuntimeException("Token đã hết hạn! Vui lòng yêu cầu gửi lại email xác nhận.");
+            throw UserException.badRequest("Token đã hết hạn! Vui lòng yêu cầu gửi lại email xác nhận.");
+        }
+
+        if (!token.equals(user.getVerificationToken())) {
+            throw UserException.badRequest("Token không khớp!");
         }
 
         user.setIsEmailVerified(true);
@@ -161,18 +250,26 @@ public class AuthServiceImpl implements AuthService{
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> UserException.notFound("Email không tồn tại!"));
 
-        if (user.getIsEmailVerified()) {
-            throw new RuntimeException("Email đã được xác nhận!");
+        if (Boolean.TRUE.equals(user.getIsEmailVerified())) {
+            throw UserException.illegal("Email đã được xác nhận, không cần xác minh lại!");
         }
 
-        String token = UUID.randomUUID().toString();
-        user.setVerificationToken(token);
+        if (user.getVerificationToken() != null && !user.isTokenExpired()) {
+            throw UserException.badRequest("Mã xác minh cũ vẫn còn hiệu lực. Vui lòng kiểm tra hộp thư!");
+        }
+
+        String newToken = String.format("%06d", new java.util.Random().nextInt(999999));
+        Date expiry = new Date(System.currentTimeMillis() + 10 * 60 * 1000);
+
+        user.setVerificationToken(newToken);
+        user.setTokenExpiryDate(expiry);
         userRepository.save(user);
 
-        emailService.sendVerificationEmail(user, token);
+        emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), newToken);
 
-        return "Email xác nhận đã được gửi lại!";
+        return "Mã xác nhận mới đã được gửi đến email của bạn!";
     }
+
 
 
 

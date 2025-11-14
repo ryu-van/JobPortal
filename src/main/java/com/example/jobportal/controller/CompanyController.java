@@ -3,6 +3,9 @@ package com.example.jobportal.controller;
 import com.example.jobportal.dto.request.NewCompanyVerificationRequest;
 import com.example.jobportal.dto.request.UpdateCompanyRequest;
 import com.example.jobportal.dto.response.*;
+import com.example.jobportal.exception.CompanyException;
+import com.example.jobportal.model.entity.Company;
+import com.example.jobportal.model.entity.CompanyInvitation;
 import com.example.jobportal.service.CompanyService;
 import com.example.jobportal.service.FileUploadService;
 import lombok.RequiredArgsConstructor;
@@ -125,5 +128,16 @@ public class CompanyController extends BaseController {
     ) {
         companyService.reviewCompanyVerificationRequest(requestId, reviewedById, isApproved, reason);
         return ok("Review company verification request successfully");
+    }
+    @PostMapping("/invitations")
+    public ResponseEntity<ApiResponse<InvitationResponse>> createInvitation(
+            @RequestParam Long companyId,
+            @RequestParam Long createdById,
+            @RequestParam String email,
+            @RequestParam int maxUses,
+            @RequestParam int expiresInHours
+    ) {
+        InvitationResponse response = companyService.createInvitation(companyId, createdById, email, maxUses, expiresInHours);
+        return ok("Create invitation successfully", response);
     }
 }

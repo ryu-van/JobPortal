@@ -27,4 +27,11 @@ public class CompanyException extends RuntimeException {
     public static CompanyException forbidden(String message) {
         return new CompanyException(message, HttpStatus.FORBIDDEN);
     }
+
+    public static CompanyException illegal(String message) {
+        return new CompanyException(message, HttpStatus.CONFLICT);
+    }
+    public static CompanyException internal(String message) {
+        return new CompanyException(message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }

@@ -15,5 +15,6 @@ public class RegisterUserRequest {
     private String password;
     private Boolean gender;
     private Long roleId;
+    private String codeInvitation;
 
 }

@@ -5,13 +5,12 @@ import com.example.jobportal.dto.request.UpdateCompanyRequest;
 import com.example.jobportal.dto.response.CompanyBaseResponse;
 import com.example.jobportal.dto.response.CompanyVerificationRequestDetailResponse;
 import com.example.jobportal.dto.response.CompanyVerificationRequestResponse;
+import com.example.jobportal.dto.response.InvitationResponse;
 import com.example.jobportal.exception.CompanyException;
-import com.example.jobportal.model.entity.BaseAddress;
-import com.example.jobportal.model.entity.Company;
-import com.example.jobportal.model.entity.CompanyVerificationRequest;
-import com.example.jobportal.model.entity.User;
+import com.example.jobportal.model.entity.*;
 import com.example.jobportal.model.enums.CompanyVerificationStatus;
 import com.example.jobportal.model.enums.NotificationType;
+import com.example.jobportal.repository.CompanyInvitationRepository;
 import com.example.jobportal.repository.CompanyRepository;
 import com.example.jobportal.repository.CompanyVerificationRequestRepository;
 import com.example.jobportal.repository.UserRepository;
@@ -22,8 +21,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -33,6 +36,9 @@ public class CompanyServiceImpl implements CompanyService {
     private final CompanyVerificationRequestRepository companyVerificationRequestRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final CompanyInvitationRepository invitationRepository;
+    private static final String INVITATION_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int INVITATION_CODE_LENGTH = 8;
 
     @Override
     public Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(String keyword, String verifyStatus, LocalDate createdDate, Pageable pageable) {
@@ -306,6 +312,242 @@ public class CompanyServiceImpl implements CompanyService {
         }
     }
 
+    @Override
+    @Transactional
+    public InvitationResponse createInvitation(Long companyId, Long createdBy, String email, int maxUses, int expiresInHours) {
+        log.info("Creating invitation for company: {} by user: {}", companyId, createdBy);
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> CompanyException.notFound("Company not found"));
+        User user = userRepository.findById(createdBy)
+                .orElseThrow(()-> CompanyException.notFound("User not found"));
+
+        CompanyInvitation invitation = new CompanyInvitation();
+        invitation.setCompany(company);
+        invitation.setCreatedBy(user);
+        invitation.setCode(generateUniqueInvitationCode());
+        invitation.setEmail(email);
+        invitation.setMaxUses(maxUses);
+        invitation.setUsedCount(0);
+        invitation.setExpiresAt(LocalDateTime.now().plusHours(expiresInHours));
+        invitation.setIsActive(true);
+        invitation.setRole("hr");
+
+        CompanyInvitation saved = invitationRepository.save(invitation);
+        log.info("✅ Created invitation with code: {}", saved.getCode());
+
+        return InvitationResponse.fromEntity(saved);
+    }
+
+
+    @Override
+    @Transactional
+    public void markUsed(CompanyInvitation invitation) {
+        log.info("Marking invitation {} as used", invitation.getCode());
+
+        invitation.setUsedCount(invitation.getUsedCount() + 1);
+
+        if (invitation.getUsedCount() >= invitation.getMaxUses()) {
+            invitation.setIsActive(false);
+            log.info("Invitation {} has reached max uses, deactivated", invitation.getCode());
+        }
+
+        invitationRepository.save(invitation);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CompanyInvitation> findByCode(String code) {
+        log.debug("Finding invitation by code: {}", code);
+        return invitationRepository.findByCode(code);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CompanyInvitation> findValidInvitation(String code) {
+        log.debug("Finding valid invitation by code: {}", code);
+        return invitationRepository.findByCode(code)
+                .filter(invitation -> {
+                    boolean isValid = invitation.canBeUsed();
+                    log.debug("Invitation {} valid status: {}", code, isValid);
+                    return isValid;
+                });
+    }
+
+    @Override
+    @Transactional
+    public CompanyInvitation useInvitation(String code) {
+        log.info("Using invitation: {}", code);
+
+        CompanyInvitation invitation = findValidInvitation(code)
+                .orElseThrow(() -> CompanyException.badRequest(
+                        "Mã mời không hợp lệ, đã hết hạn hoặc đã được sử dụng hết"
+                ));
+
+        invitation.setUsedCount(invitation.getUsedCount() + 1);
+
+        if (invitation.getUsedCount() >= invitation.getMaxUses()) {
+            invitation.setIsActive(false);
+            log.info("🔒 Invitation {} has been fully used and deactivated", code);
+        }
+
+        CompanyInvitation saved = invitationRepository.save(invitation);
+        log.info("✅ Invitation {} used successfully ({}/{})",
+                code, saved.getUsedCount(), saved.getMaxUses());
+
+        return saved;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CompanyInvitation> getInvitationsByCompany(Long companyId) {
+        log.debug("Getting all invitations for company: {}", companyId);
+        return invitationRepository.findByCompanyId(companyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CompanyInvitation> getActiveInvitationsByCompany(Long companyId) {
+        log.debug("Getting active invitations for company: {}", companyId);
+        return invitationRepository.findByCompanyIdAndIsActiveTrue(companyId);
+    }
+
+
+    @Override
+    @Transactional
+    public void deactivateInvitation(Long invitationId) {
+        log.info("Deactivating invitation: {}", invitationId);
+
+        CompanyInvitation invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> CompanyException.notFound("Invitation not found with id: " + invitationId));
+
+        invitation.setIsActive(false);
+        invitationRepository.save(invitation);
+
+        log.info("✅ Invitation {} deactivated", invitationId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteInvitation(Long invitationId) {
+        log.info("Deleting invitation: {}", invitationId);
+
+        if (!invitationRepository.existsById(invitationId)) {
+            throw CompanyException.notFound("Invitation not found with id: " + invitationId);
+        }
+
+        invitationRepository.deleteById(invitationId);
+        log.info("✅ Invitation {} deleted", invitationId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isInvitationBelongsToCompany(Long invitationId, Long companyId) {
+        log.debug("Checking if invitation {} belongs to company {}", invitationId, companyId);
+
+        return invitationRepository.findById(invitationId)
+                .map(invitation -> invitation.getCompany().getId().equals(companyId))
+                .orElse(false);
+    }
+
+    @Override
+    @Transactional
+    public int cleanupExpiredInvitations() {
+        log.info("Starting cleanup of expired invitations");
+
+        List<CompanyInvitation> expiredInvitations =
+                invitationRepository.findExpiredInvitations(LocalDateTime.now());
+
+        int count = expiredInvitations.size();
+
+        if (count > 0) {
+            invitationRepository.deleteAll(expiredInvitations);
+            log.info("🗑️ Deleted {} expired invitations", count);
+        } else {
+            log.info("No expired invitations to cleanup");
+        }
+
+        return count;
+    }
+
+    @Override
+    @Transactional
+    public int deactivateExpiredInvitations() {
+        log.info("Starting deactivation of expired invitations");
+
+        List<CompanyInvitation> expiredInvitations =
+                invitationRepository.findExpiredActiveInvitations(LocalDateTime.now());
+
+        int count = expiredInvitations.size();
+
+        if (count > 0) {
+            expiredInvitations.forEach(invitation -> invitation.setIsActive(false));
+            invitationRepository.saveAll(expiredInvitations);
+            log.info("🔒 Deactivated {} expired invitations", count);
+        } else {
+            log.info("No expired active invitations to deactivate");
+        }
+
+        return count;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isEmailMatchInvitation(String code, String email) {
+        log.debug("Checking if email {} matches invitation {}", email, code);
+
+        return invitationRepository.findByCode(code)
+                .map(invitation -> {
+                    // Nếu invitation không chỉ định email cụ thể, cho phép mọi email
+                    if (invitation.getEmail() == null || invitation.getEmail().trim().isEmpty()) {
+                        return true;
+                    }
+                    // Nếu có email cụ thể, phải match
+                    return invitation.getEmail().equalsIgnoreCase(email);
+                })
+                .orElse(false);
+    }
+
+    @Override
+    @Transactional
+    public CompanyInvitation extendInvitation(Long invitationId, Integer additionalHours) {
+        log.info("Extending invitation {} by {} hours", invitationId, additionalHours);
+
+        if (additionalHours == null || additionalHours <= 0) {
+            throw CompanyException.badRequest("Additional hours must be greater than 0");
+        }
+
+        CompanyInvitation invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> CompanyException.notFound("Invitation not found with id: " + invitationId));
+
+        LocalDateTime oldExpiry = invitation.getExpiresAt();
+        invitation.setExpiresAt(oldExpiry.plusHours(additionalHours));
+
+        CompanyInvitation saved = invitationRepository.save(invitation);
+        log.info("✅ Extended invitation {} from {} to {}",
+                invitationId, oldExpiry, saved.getExpiresAt());
+
+        return saved;
+    }
+
+
+    @Override
+    @Transactional
+    public CompanyInvitation resetUsageCount(Long invitationId) {
+        log.info("Resetting usage count for invitation: {}", invitationId);
+
+        CompanyInvitation invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> CompanyException.notFound("Invitation not found with id: " + invitationId));
+
+        int oldCount = invitation.getUsedCount();
+        invitation.setUsedCount(0);
+        invitation.setIsActive(true);
+
+        CompanyInvitation saved = invitationRepository.save(invitation);
+        log.info("✅ Reset invitation {} usage count from {} to 0", invitationId, oldCount);
+
+        return saved;
+    }
+
     // Helper methods
     private BaseAddress createBaseAddress(NewCompanyVerificationRequest request) {
         BaseAddress address = new BaseAddress();
@@ -333,5 +575,35 @@ public class CompanyServiceImpl implements CompanyService {
         if (request.getSenderId() == null) {
             throw CompanyException.badRequest("Sender ID is required");
         }
+    }
+    private String generateUniqueInvitationCode() {
+        String code;
+        int attempts = 0;
+        int maxAttempts = 10;
+
+        do {
+            code = generateRandomInvitationCode();
+            attempts++;
+
+            if (attempts >= maxAttempts) {
+                throw CompanyException.internal("Failed to generate unique invitation code after " + maxAttempts + " attempts");
+            }
+        } while (invitationRepository.existsByCode(code));
+
+        return code;
+    }
+
+
+    private String generateRandomInvitationCode() {
+        SecureRandom random = new SecureRandom();
+        StringBuilder code = new StringBuilder(INVITATION_CODE_LENGTH);
+
+        for (int i = 0; i < INVITATION_CODE_LENGTH; i++) {
+            code.append(INVITATION_CODE_CHARACTERS.charAt(
+                    random.nextInt(INVITATION_CODE_CHARACTERS.length())
+            ));
+        }
+
+        return code.toString();
     }
 }

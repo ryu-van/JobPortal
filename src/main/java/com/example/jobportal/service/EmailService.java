@@ -1,6 +1,5 @@
 package com.example.jobportal.service;
 
-import com.example.jobportal.model.entity.User;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -15,64 +14,63 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Service
 public class EmailService {
+
     private final JavaMailSender mailSender;
 
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Value("${app.frontend.url}")
-    private String frontendUrl;
 
     @Async("taskExecutor")
-    public void sendVerificationEmail(User user, String token) {
+    public void sendVerificationEmail(String toEmail, String fullName, String code) {
         try {
-            log.info("Starting to send verification email to: {}", user.getEmail());
+            log.info("📨 Sending verification code {} to {}", code, toEmail);
+
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromEmail);
-            helper.setTo(user.getEmail());
-            helper.setSubject("Xác nhận địa chỉ email của bạn");
-            String verificationUrl = frontendUrl + "/verify-email?token=" + token;
-            String htmlContent = buildVerificationEmail(user.getFullName(), verificationUrl);
-            helper.setText(htmlContent, true);
-            mailSender.send(message);
-            log.info("✅ Verification email sent successfully to: {}", user.getEmail());
 
-        } catch (MessagingException msgEx) {
-            log.error("❌ Failed to send verification email to: {}", user.getEmail(), msgEx);
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Mã xác thực tài khoản của bạn");
+
+            String htmlContent = buildVerificationCodeEmail(fullName, code);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("✅ Verification code sent successfully to {}", toEmail);
+
+        } catch (MessagingException e) {
+            log.error("❌ Failed to send verification code to {}: {}", toEmail, e.getMessage(), e);
         } catch (Exception e) {
-            log.error("❌ An unexpected error occurred while sending verification email to: {}", user.getEmail(), e);
+            log.error("❌ Unexpected error while sending email to {}: {}", toEmail, e.getMessage(), e);
         }
     }
 
-    private String buildVerificationEmail(String username, String verificationUrl) {
-        return "<!DOCTYPE html>" +
-                "<html>" +
-                "<head>" +
-                "<style>" +
-                "body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }" +
-                ".container { max-width: 600px; margin: 0 auto; padding: 20px; }" +
-                ".button { background-color: #4CAF50; color: white; padding: 14px 20px; " +
-                "text-decoration: none; border-radius: 4px; display: inline-block; margin: 20px 0; }" +
-                ".footer { margin-top: 30px; font-size: 12px; color: #666; }" +
-                "</style>" +
-                "</head>" +
-                "<body>" +
-                "<div class='container'>" +
-                "<h2>Xin chào " + username + "!</h2>" +
-                "<p>Cảm ơn bạn đã đăng ký tài khoản.</p>" +
-                "<p>Vui lòng nhấn vào nút bên dưới để xác nhận email của bạn:</p>" +
-                "<a href='" + verificationUrl + "' class='button'>Xác nhận Email</a>" +
-                "<p>Hoặc copy link sau vào trình duyệt:</p>" +
-                "<p>" + verificationUrl + "</p>" +
-                "<p>Link này sẽ hết hạn sau 24 giờ.</p>" +
-                "<div class='footer'>" +
-                "<p>Nếu bạn không tạo tài khoản này, vui lòng bỏ qua email này.</p>" +
-                "</div>" +
-                "</div>" +
-                "</body>" +
-                "</html>";
+
+    private String buildVerificationCodeEmail(String username, String code) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 8px; background-color: #f9f9f9; }
+                    .code-box { background-color: #4CAF50; color: white; padding: 15px; font-size: 24px; text-align: center; border-radius: 6px; margin: 20px 0; }
+                    .footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <h2>Xin chào %s!</h2>
+                    <p>Cảm ơn bạn đã đăng ký tài khoản. Đây là mã xác thực của bạn:</p>
+                    <div class="code-box">%s</div>
+                    <p>Mã này có hiệu lực trong <strong>10 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+                    <div class="footer">
+                      <p>Nếu bạn không yêu cầu xác thực, vui lòng bỏ qua email này.</p>
+                    </div>
+                  </div>
+                </body>
+                </html>
+                """.formatted(username, code);
     }
-
-
 }

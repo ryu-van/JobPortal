@@ -22,6 +22,7 @@ public class UserBaseResponse {
     private Long roleId;
     private String roleName;
     private boolean isActive;
+    private boolean isEmailVerified;
     public static UserBaseResponse fromEntity(User user) {
         return UserBaseResponse.builder()
                 .id(user.getId())
@@ -32,6 +33,7 @@ public class UserBaseResponse {
                 .roleId(user.getRole().getId())
                 .roleName(user.getRole().getName())
                 .isActive(user.getIsActive())
+                .isEmailVerified(user.getIsEmailVerified())
                 .build();
     }
 }

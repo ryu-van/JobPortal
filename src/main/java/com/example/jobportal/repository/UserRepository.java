@@ -26,7 +26,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
                     u.gender,
                     u.role.id,
                     u.role.name,
-                    u.isActive
+                    u.isActive,
+                    u.isEmailVerified
                 )
                 FROM User u
                 WHERE u.role.id = 2
@@ -47,7 +48,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
                     u.gender,
                     u.role.id,
                     u.role.name,
-                    u.isActive
+                    u.isActive,
+                    u.isEmailVerified
                 )
                 FROM User u
                 WHERE u.role.id = :roleId
@@ -67,4 +69,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.role.name = :roleName AND u.isActive = true")
     List<User> findAllByRoleName(String roleName);
 
+    boolean existsByCode(String code);
 }
