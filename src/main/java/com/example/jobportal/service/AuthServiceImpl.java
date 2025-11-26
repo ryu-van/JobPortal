@@ -57,7 +57,6 @@ public class AuthServiceImpl implements AuthService{
     public AuthResponse register(RegisterUserRequest request, HttpServletResponse response) {
         log.info("📝 Starting registration for email: {}", request.getEmail());
 
-        // 🔹 Validate email uniqueness
         if (userRepository.existsByEmail(request.getEmail())) {
             throw UserException.illegal("Email đã tồn tại, vui lòng đăng nhập hoặc xác thực tài khoản.");
         }
@@ -65,14 +64,12 @@ public class AuthServiceImpl implements AuthService{
         Company company = null;
         Role role;
 
-        // 🔹 Xử lý đăng ký qua mã mời
         if (request.getCodeInvitation() != null && !request.getCodeInvitation().isBlank()) {
             log.info("🎫 Processing invitation code: {}", request.getCodeInvitation());
 
             CompanyInvitation invitation = companyService.findValidInvitation(request.getCodeInvitation())
                     .orElseThrow(() -> new IllegalArgumentException("Mã mời không hợp lệ, đã hết hạn hoặc đã được sử dụng hết"));
 
-            // 🔹 Kiểm tra email match (nếu invitation có email cụ thể)
             if (invitation.getEmail() != null && !invitation.getEmail().equalsIgnoreCase(request.getEmail())) {
                 throw new IllegalArgumentException("Email không khớp với mã mời. Mã mời này dành cho: " + invitation.getEmail());
             }
@@ -83,18 +80,15 @@ public class AuthServiceImpl implements AuthService{
 
             log.info("✅ Valid invitation found for company: {} (role: {})", company.getName(), invitation.getRole());
         } else {
-            // 🔹 Đăng ký thông thường
             role = roleRepository.findById(request.getRoleId())
                     .orElseThrow(() -> RoleException.notFound("Invalid role ID: " + request.getRoleId()));
 
             log.info("✅ Standard registration with role: {}", role.getName());
         }
 
-        // 🔹 Tạo user code và OTP
         String userCode = generateUserCode();
         String otpToken = generateOTP();
 
-        // 🔹 Tạo user mới
         User user = User.builder()
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
@@ -114,7 +108,6 @@ public class AuthServiceImpl implements AuthService{
         log.info("✅ User created successfully with ID: {} for company: {}",
                 user.getId(), company != null ? company.getName() : "N/A");
 
-        // 🔹 Sử dụng mã mời (nếu có) - Dùng service thay vì logic thủ công
         if (request.getCodeInvitation() != null && !request.getCodeInvitation().isBlank()) {
             try {
                 CompanyInvitation usedInvitation = companyService.useInvitation(request.getCodeInvitation());
@@ -148,9 +141,7 @@ public class AuthServiceImpl implements AuthService{
         return createAuthResponse(accessToken, refreshToken, user);
     }
 
-    /**
-     * Tạo mã user duy nhất
-     */
+
     private String generateUserCode() {
         String code;
         do {
@@ -159,9 +150,7 @@ public class AuthServiceImpl implements AuthService{
         return code;
     }
 
-    /**
-     * Tạo OTP 6 chữ số
-     */
+  
     private String generateOTP() {
         return String.format("%06d", new SecureRandom().nextInt(999999));
     }
@@ -300,6 +289,14 @@ public class AuthServiceImpl implements AuthService{
         userResponse.setEmail(user.getEmail());
         userResponse.setFullName(user.getFullName());
         userResponse.setRoleName(user.getRole().getName());
+        userResponse.setEmailVerified(user.getIsEmailVerified());
+        userResponse.setPhoneNumber(user.getPhoneNumber());
+        userResponse.setRoleId(user.getRole().getId());
+        userResponse.setRoleName(user.getRole().getName());
+        userResponse.setGender(user.getGender());
+        userResponse.setCode(user.getCode());
+        userResponse.setActive(user.getIsActive());
+        userResponse.setTokenExpiryDate(user.getTokenExpiryDate());
 
         AuthResponse authResponse = new AuthResponse();
         authResponse.setAccessToken(accessToken);

@@ -27,7 +27,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
                     u.role.id,
                     u.role.name,
                     u.isActive,
-                    u.isEmailVerified
+                    u.isEmailVerified,
+                    u.tokenExpiryDate,
+                    u.phoneNumber
                 )
                 FROM User u
                 WHERE u.role.id = 2
@@ -49,7 +51,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
                     u.role.id,
                     u.role.name,
                     u.isActive,
-                    u.isEmailVerified
+                    u.isEmailVerified,
+                    u.tokenExpiryDate,
+                    u.phoneNumber
                 )
                 FROM User u
                 WHERE u.role.id = :roleId

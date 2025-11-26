@@ -46,6 +46,7 @@ public class User extends BaseEntity {
 
     private Boolean isActive;
 
+    @Column(name = "is_email_verified")
     private Boolean isEmailVerified;
 
     private LocalDateTime lastLoginAt;
