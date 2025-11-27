@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public interface UserService {
 
@@ -19,7 +21,7 @@ public interface UserService {
     Page<UserBaseResponse> getUsersByCandidateRole(String keyword, Boolean isActive, Pageable pageable);
 
     // ---------------------- ADMIN COMPANY ----------------------
-    Page<UserBaseResponse> getHrUsersInCompany(String keyword, Boolean isActive, Pageable pageable);
+    List<UserBaseResponse> getHrUsersInCompany(String keyword, Boolean isActive, Long companyId,String asc);
     // ---------------------- COMMON ----------------------
     UserDetailResponse getUserById(Long id);
     UserBaseResponse updateUser(Long id, UpdateUserRequest request);

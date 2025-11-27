@@ -16,6 +16,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService{
@@ -38,8 +40,9 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public Page<UserBaseResponse> getHrUsersInCompany(String keyword, Boolean isActive, Pageable pageable) {
-        return null;
+    public List<UserBaseResponse> getHrUsersInCompany(String keyword, Boolean isActive, Long companyId,String asc) {
+
+        return userRepository.getUserInCompany(keyword,isActive,companyId,asc) ;
     }
 
     @Override
