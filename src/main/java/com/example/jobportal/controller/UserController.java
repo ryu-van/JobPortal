@@ -60,7 +60,7 @@ public class UserController extends BaseController {
         return ok("Get list of hr",hrPages.getContent(),pageInfo);
     }
     @GetMapping("/candidates")
-    public ResponseEntity<ApiResponse<Page<UserBaseResponse>>> getListCandidates(
+    public ResponseEntity<ApiResponse<List<UserBaseResponse>>> getListCandidates(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(defaultValue = "0") int pageNo,
@@ -72,15 +72,13 @@ public class UserController extends BaseController {
 
         Pageable pageable = PageRequest.of(pageNo, size, sort);
 
-        Page<UserBaseResponse> data =
+        Page<UserBaseResponse> candidates =
                 userService.getUsersByCandidateRole(keyword, isActive, pageable);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(data)
-        );
+        PageInfo pageInfo = PageInfo.of(candidates.getNumber(), candidates.getSize(), candidates.getTotalElements());
+        return ok("Get candidates", candidates.getContent(),pageInfo);
     }
     @GetMapping("/admin-company/users")
-    public ResponseEntity<ApiResponse<Page<UserBaseResponse>>> getUsersByAdminCompany(
+    public ResponseEntity<ApiResponse<List<UserBaseResponse>>> getUsersByAdminCompany(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(defaultValue = "0") int pageNo,
@@ -93,10 +91,20 @@ public class UserController extends BaseController {
 
         Pageable pageable = PageRequest.of(pageNo, size, sort);
 
-        Page<UserBaseResponse> page =
+        Page<UserBaseResponse> adminCompanyRoles =
                 userService.getUsersByAdminCompanyRole(keyword, isActive, pageable);
-
-        return ResponseEntity.ok(ApiResponse.success(page));
+        PageInfo pageInfo = PageInfo.of(adminCompanyRoles.getNumber(), adminCompanyRoles.getSize(), adminCompanyRoles.getTotalElements());
+        return ok("Get admin companies", adminCompanyRoles.getContent(),pageInfo);
+    }
+    @GetMapping("/{companyId}/users")
+    public ResponseEntity<ApiResponse<List<UserBaseResponse>>> getUsersInCompany(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Boolean isActive,
+            @PathVariable("companyId") Long companyId,
+            @RequestParam(required = false) String asc
+    ){
+        List<UserBaseResponse> listUserInCompany = userService.getHrUsersInCompany(keyword,isActive,companyId,asc);
+        return ok("Get list of user in the company",listUserInCompany);
     }
 
 
