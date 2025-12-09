@@ -44,7 +44,9 @@ public class User extends BaseEntity {
     @Embedded
     private BaseAddress address;
 
-    private Boolean isActive;
+    @Column(nullable = false)
+    private Boolean isActive = true;
+
 
     @Column(name = "is_email_verified")
     private Boolean isEmailVerified;

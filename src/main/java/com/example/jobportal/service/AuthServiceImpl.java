@@ -207,7 +207,8 @@ public class AuthServiceImpl implements AuthService{
     @Override
     public AuthResponse getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getPrincipal();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userDetails.getUser();
         return createAuthResponse(null, null, user);
     }
 

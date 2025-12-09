@@ -11,8 +11,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,8 +28,16 @@ public class UserController extends BaseController {
     public ResponseEntity<ApiResponse<UserBaseResponse>> updateInformationForUser(@PathVariable("id") Long id, @RequestBody UpdateUserRequest updateUserRequest){
         UserBaseResponse updatedUser = userService.updateUser(id,updateUserRequest);
         return ok("User updated successfully",updatedUser);
-
     }
+    @PutMapping(value = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<String>> updateAvatar(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file
+    ) {
+        String url = userService.updateAvatar(id, file);
+        return ok("Avatar updated successfully", url);
+    }
+
     @PutMapping("/status/{id}")
     public ResponseEntity<ApiResponse<Void>> toggleChangeStatus(@PathVariable("id") Long id, @RequestParam Boolean status  ){
         userService.toggleUserActive(id, status);

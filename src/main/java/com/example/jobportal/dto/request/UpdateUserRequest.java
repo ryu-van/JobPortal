@@ -4,12 +4,16 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateUserRequest {
+    private LocalDate dateOfBirth;
     private String fullName;
     private String phoneNumber;
     private String street;
@@ -17,7 +21,6 @@ public class UpdateUserRequest {
     private String district;
     private String city;
     private String country;
-    private String avatarUrl;
     private Boolean gender;
     private Long CompanyId;
     private Long roleId;

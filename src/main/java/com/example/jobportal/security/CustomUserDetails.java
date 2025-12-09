@@ -1,24 +1,25 @@
 package com.example.jobportal.security;
 
 import com.example.jobportal.model.entity.User;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.Collections;
-
 @Getter
-@AllArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
     private final User user;
+    private final Collection<? extends GrantedAuthority> authorities;
+
+    public CustomUserDetails(User user, Collection<? extends GrantedAuthority> authorities) {
+        this.user = user;
+        this.authorities = authorities;
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Nếu bạn có field role trong User
-        return Collections.singleton(() -> user.getRole().getName());
+        return authorities;
     }
 
     @Override
@@ -32,27 +33,17 @@ public class CustomUserDetails implements UserDetails {
     }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
+    public boolean isAccountNonExpired() { return true; }
 
     @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
+    public boolean isAccountNonLocked() { return true; }
 
     @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
+    public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled() {
-        return user.getIsActive(); // nếu có field này, hoặc return true;
-    }
+    public boolean isEnabled() { return user.getIsActive(); }
 
-    // ✅ Giúp bạn truy cập nhanh ID user trong controller
-    public Long getId() {
-        return user.getId();
-    }
+    public Long getId() { return user.getId(); }
 }
+
