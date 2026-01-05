@@ -27,6 +27,7 @@ public class UserBaseResponse {
     private boolean isEmailVerified;
     private Date tokenExpiryDate;
     private String phoneNumber;
+    private String avatarUrl;
     public static UserBaseResponse fromEntity(User user) {
         return UserBaseResponse.builder()
                 .id(user.getId())
@@ -40,6 +41,7 @@ public class UserBaseResponse {
                 .isEmailVerified(user.getIsEmailVerified())
                 .tokenExpiryDate(user.getTokenExpiryDate())
                 .phoneNumber(user.getPhoneNumber())
+                .avatarUrl(user.getAvatarUrl())
                 .build();
     }
 }

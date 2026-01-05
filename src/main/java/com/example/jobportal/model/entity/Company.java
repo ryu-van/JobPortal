@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Builder
 @Setter
 @Getter
@@ -24,7 +27,7 @@ public class Company extends BaseEntity {
     @NotNull(message = "Company email cannot be null")
     private String email;
 
-    private String phone;
+    private String phoneNumber;
 
     private String description;
 
@@ -36,8 +39,10 @@ public class Company extends BaseEntity {
 
     private String logoUrl;
 
-    @Embedded
-    private BaseAddress address;
+    private String logoPublicId;
+
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Address> addresses = new HashSet<>();
 
     @Column(name = "is_verified", nullable = false)
     private Boolean isVerified = false;

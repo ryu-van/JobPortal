@@ -16,8 +16,8 @@ import java.util.List;
 @RequestMapping("${spring.base-url}/categories")
 public class CategoryController extends BaseController {
     private final CategoryService categoryService;
-    @GetMapping("/")
-    public ResponseEntity<ApiResponse<List<JobCategoryResponse>>> getCategories(@RequestParam String keyword) {
+    @GetMapping("")
+    public ResponseEntity<ApiResponse<List<JobCategoryResponse>>> getCategories(@RequestParam(required = false) String keyword) {
         List<JobCategoryResponse> jobCategoryResponse = categoryService.getListOfCategories(keyword);
         return ok("Get categories successfully", jobCategoryResponse);
     }
@@ -26,7 +26,7 @@ public class CategoryController extends BaseController {
         JobCategoryResponse jobCategoryResponse = categoryService.getJobCategory(id);
         return ok("Get category successfully", jobCategoryResponse);
     }
-    @PostMapping("/")
+    @PostMapping("")
     public ResponseEntity<ApiResponse<JobCategoryResponse>> createCategory(@RequestBody JobCategoryRequest jobCategoryRequest) {
         JobCategoryResponse jobCategoryResponse = categoryService.createJobCategory(jobCategoryRequest);
         return ok("Create category successfully", jobCategoryResponse);

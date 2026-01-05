@@ -18,11 +18,7 @@ import java.time.LocalDateTime;
 public class UserDetailResponse extends UserBaseResponse{
     private LocalDate dateOfBirth;
     private String phoneNumber;
-    private String street;
-    private String ward;
-    private String district;
-    private String city;
-    private String country;
+    private AddressResponse address;
     private String avatarUrl;
     private Boolean isEmailVerified;
     private LocalDateTime lastLoginAt;
@@ -38,15 +34,10 @@ public class UserDetailResponse extends UserBaseResponse{
                 .gender(user.getGender())
                 .roleId(user.getRole().getId())
                 .roleName(user.getRole().getName())
-                .street(user.getAddress().getStreet())
-                .ward(user.getAddress().getWard())
-                .district(user.getAddress().getDistrict())
-                .city(user.getAddress().getCity())
-                .country(user.getAddress().getCountry())
+                .address(AddressResponse.fromEntity(user.getAddress()))
                 .isActive(user.getIsActive())
                 .dateOfBirth(user.getDateOfBirth())
                 .phoneNumber(user.getPhoneNumber())
-                .city(user.getAddress().getCity())
                 .avatarUrl(user.getAvatarUrl())
                 .isEmailVerified(user.getIsEmailVerified())
                 .lastLoginAt(user.getLastLoginAt())

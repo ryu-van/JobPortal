@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -36,33 +37,37 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public Page<JobBaseResponse> getBaseJobs(String keyword, String category, String location, Pageable pageable) {
-        return jobRepository.getBaseJobs(keyword, category, location, pageable);
+        return jobRepository.getBaseJobs(keyword, category, location, pageable)
+                .map(JobBaseResponse::fromEntity);
     }
+
 
     @Override
     public Page<JobBaseResponseV2> getJobs(String keyword, String category, String location, Pageable pageable) {
-        Page<Object[]> results = jobRepository.getJobsNative(keyword, category, location, pageable);
+        Page<Object[]> results = jobRepository.getJobsNative(keyword, category, pageable);
 
-        return results.map(row -> new JobBaseResponseV2(
-                ((Number) row[0]).longValue(),
-                (String) row[1],
-                (String) row[2],
-                (String) row[3],
-                (String) row[4],
-                (String) row[5],
-                (String) row[6],
-                (String) row[7],
-                row[8] != null && (Boolean) row[8],
-                (BigDecimal) row[9],
-                (BigDecimal) row[10],
-                (String) row[11],
-                (String) row[12],
-                (String) row[13],
-                (String) row[14],
-                row[15] != null ? ((Number) row[15]).intValue() : null,
-                row[16] != null ? ((Timestamp) row[16]).toLocalDateTime() : null,
-                (String) row[17]
-        ));
+        return results.map(row -> JobBaseResponseV2.builder()
+                .id(((Number) row[0]).longValue())
+                .title((String) row[1])
+                .companyName((String) row[2])
+                .companyLogo((String) row[3])
+                .isSalaryNegotiable((Boolean) row[4])
+                .salaryMin((BigDecimal) row[5])
+                .salaryMax((BigDecimal) row[6])
+                .salaryCurrency((String) row[7])
+                .workType((String) row[8])
+                .employmentType((String) row[9])
+                .experienceLevel((String) row[10])
+                .numberOfPositions(row[11] != null ? ((Number) row[11]).intValue() : null)
+                .applicationDeadline(row[12] != null
+                        ? ((Timestamp) row[12]).toLocalDateTime()
+                        : null)
+                .categoryNames(
+                        row[13] != null
+                                ? List.of(((String) row[13]).split(",\\s*"))
+                                : List.of()
+                )
+                .build());
     }
 
 
@@ -178,14 +183,19 @@ public class JobServiceImpl implements JobService {
 
 
     @Override
-    public Page<JobBaseResponse> getJobsByHr(String keyword, String category, String location,String status,Long hrId, Pageable pageable) {
-        return jobRepository.getJobsByHrId(keyword, category, location, status ,hrId, pageable);
+    public Page<JobBaseResponse> getJobsByHr(String keyword, String category, String location,
+                                             String status, Long hrId, Pageable pageable) {
+        return jobRepository.getJobsByHrId(keyword, category, location, status, hrId, pageable)
+                .map(JobBaseResponse::fromEntity);
     }
 
     @Override
-    public Page<JobBaseResponse> getJobsByCompany(String keyword, String category, String location,String status,Long companyId, Pageable pageable) {
-        return jobRepository.getJobsByCompanyId(keyword, category, location, companyId, status, pageable);
+    public Page<JobBaseResponse> getJobsByCompany(String keyword, String category, String location,
+                                                  String status, Long companyId, Pageable pageable) {
+        return jobRepository.getJobsByCompanyId(keyword, category, location, status, companyId, pageable)
+                .map(JobBaseResponse::fromEntity);
     }
+
 
     @Override
     @Transactional
@@ -195,9 +205,9 @@ public class JobServiceImpl implements JobService {
         User existingUser = userRepository.findById(userId)
                 .orElseThrow(() -> UserException.notFound("User not found"));
         SavedJob savedJob = SavedJob.builder()
-            .job(existingJob)
-            .user(existingUser)
-            .build();
+                .job(existingJob)
+                .user(existingUser)
+                .build();
         savedJobRepository.save(savedJob);
         notificationService.createNotification(
                 existingUser.getId(),
@@ -257,21 +267,25 @@ public class JobServiceImpl implements JobService {
             throw new JobException("Number of positions must be greater than 0", HttpStatus.BAD_REQUEST);
         }
     }
+
     private void mapJobRequestToEntity(JobRequest req, Job job, Company company, Set<JobCategory> categories) {
-        BaseAddress baseAddress = BaseAddress.builder()
-                .street(req.getStreet())
-                .ward(req.getWard())
-                .district(req.getDistrict())
-                .city(req.getCity())
-                .country(req.getCountry())
-                .build();
+        Address address = job.getAddress();
+        if (address == null) {
+            address = new Address();
+        }
+        address.setDetailAddress(req.getStreet());
+        address.setCommuneName(req.getWard());
+        address.setAddressType("job");
+        address.setProvinceName(req.getCity());
+        address.setIsActive(true);
+        address.setIsPrimary(true);
 
         job.setTitle(req.getTitle());
         job.setDescription(req.getDescription());
         job.setRequirements(req.getRequirements());
         job.setResponsibilities(req.getResponsibilities());
         job.setBenefits(req.getBenefits());
-        job.setAddress(baseAddress);
+        job.setAddress(address);
         job.setWorkType(req.getWorkType());
         job.setEmploymentType(req.getEmploymentType());
         job.setExperienceLevel(req.getExperienceLevel());

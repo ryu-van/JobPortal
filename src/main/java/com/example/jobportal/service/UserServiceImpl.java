@@ -1,13 +1,15 @@
 package com.example.jobportal.service;
 
 import com.example.jobportal.dto.request.UpdateUserRequest;
+import com.example.jobportal.dto.response.UploadResultResponse;
 import com.example.jobportal.dto.response.UserBaseResponse;
 import com.example.jobportal.dto.response.UserDetailResponse;
 import com.example.jobportal.exception.UserException;
-import com.example.jobportal.model.entity.BaseAddress;
+import com.example.jobportal.model.entity.Address;
 import com.example.jobportal.model.entity.Company;
 import com.example.jobportal.model.entity.User;
 import com.example.jobportal.model.enums.Role;
+import com.example.jobportal.model.enums.UploadType;
 import com.example.jobportal.repository.CompanyRepository;
 import com.example.jobportal.repository.RoleRepository;
 import com.example.jobportal.repository.UserRepository;
@@ -15,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -56,6 +59,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserBaseResponse updateUser(Long id, UpdateUserRequest request) {
 
         User existingUser = userRepository.findById(id)
@@ -73,15 +77,9 @@ public class UserServiceImpl implements UserService {
             existingUser.setRole(existingRole);
         }
 
-        BaseAddress baseAddress = BaseAddress.builder()
-                .street(request.getStreet() != null ? request.getStreet() : existingUser.getAddress().getStreet())
-                .ward(request.getWard() != null ? request.getWard() : existingUser.getAddress().getWard())
-                .district(request.getDistrict() != null ? request.getDistrict() : existingUser.getAddress().getDistrict())
-                .city(request.getCity() != null ? request.getCity() : existingUser.getAddress().getCity())
-                .country(request.getCountry() != null ? request.getCountry() : existingUser.getAddress().getCountry())
-                .build();
+        Address newAddress = getAddress(request, existingUser);
 
-        existingUser.setAddress(baseAddress);
+        existingUser.setAddress(newAddress);
 
         if (request.getFullName() != null)
             existingUser.setFullName(request.getFullName());
@@ -100,6 +98,25 @@ public class UserServiceImpl implements UserService {
         return UserBaseResponse.fromEntity(updatedUser);
     }
 
+    private static Address getAddress(UpdateUserRequest request, User existingUser) {
+        Address newAddress = existingUser.getAddress() != null ? existingUser.getAddress() : new Address();
+        if (request.getStreet() != null) {
+            newAddress.setDetailAddress(request.getStreet());
+        }
+        if (request.getWard() != null) {
+            newAddress.setCommuneName(request.getWard());
+        }
+        if (request.getDistrict() != null) {
+            newAddress.setAddressType("district");
+        }
+        if (request.getCity() != null) {
+            newAddress.setProvinceName(request.getCity());
+        }
+        newAddress.setIsPrimary(true);
+        newAddress.setIsActive(true);
+        return newAddress;
+    }
+
     @Override
     public void toggleUserActive(Long id, Boolean isActive) {
         User existingUser = userRepository.findById(id)
@@ -116,12 +133,37 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String updateAvatar(Long id, MultipartFile file) {
+    @Transactional
+    public void updateAvatar(Long id, MultipartFile file) {
+        if(file== null || file.isEmpty()) {
+            throw UserException.badRequest("File is required");
+        }
         User existingUser = userRepository.findById(id).orElseThrow(() -> UserException.notFound("User not found with id: " + id));
-        String fileName = fileUploadService.uploadFile(file);
-        existingUser.setAvatarUrl(fileName);
-        userRepository.save(existingUser);
-        return existingUser.getAvatarUrl();
+        UploadResultResponse result = fileUploadService.replaceFile(
+                file,
+                existingUser.getAvatarPublicId(),
+                UploadType.IMAGES
+        );
+
+        if ("SUCCESS".equals(result.getStatus())) {
+            existingUser.setAvatarUrl(result.getUrl());
+            existingUser.setAvatarPublicId(result.getPublicId());
+            userRepository.save(existingUser);
+        } else {
+            throw new RuntimeException("Upload failed: " + result.getError());
+        }
+    }
+    @Override
+    @Transactional
+    public void deleteAvatar(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> UserException.notFound("User not found"));
+        if (user.getAvatarPublicId() != null) {
+            fileUploadService.deleteFile(user.getAvatarPublicId());
+        }
+        user.setAvatarUrl(null);
+        user.setAvatarPublicId(null);
+        userRepository.save(user);
     }
 
 

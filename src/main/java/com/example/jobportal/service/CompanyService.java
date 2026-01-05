@@ -11,6 +11,7 @@ import com.example.jobportal.model.entity.CompanyInvitation;
 import com.example.jobportal.model.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.Date;
@@ -19,14 +20,14 @@ import java.util.Optional;
 
 public interface CompanyService {
 
-    Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(String keyword, String verifyStatus, LocalDate createdDate, Pageable pageable);
+    Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(String keyword, String verifyStatus, Date createdDate, Pageable pageable);
     Page<CompanyBaseResponse> getAllCompanies(String keyword, String location, Boolean isActive, Pageable pageable);
     CompanyBaseResponse updateCompany(Long companyId, UpdateCompanyRequest companyRequest);
     CompanyBaseResponse getCompanyById(Long companyId);
-    CompanyVerificationRequestResponse  createCompanyVerificationRequest(NewCompanyVerificationRequest newCompanyVerificationRequest);
+    CompanyVerificationRequestResponse  createCompanyVerificationRequest(NewCompanyVerificationRequest newCompanyVerificationRequest, List<MultipartFile> documents);
     CompanyVerificationRequestDetailResponse getCompanyVerificationRequestByCompanyId(Long companyId);
     CompanyVerificationRequestDetailResponse getCompanyVerificationRequestById(Long companyVerificationRequestId);
-    CompanyBaseResponse updateCompanyVerificationRequest(Long companyVerificationRequestId, NewCompanyVerificationRequest newCompanyVerificationRequest);
+    CompanyBaseResponse updateCompanyVerificationRequest(Long companyVerificationRequestId, NewCompanyVerificationRequest newCompanyVerificationRequest, List<MultipartFile> newDocuments);
     void changeCompanyStatus(Long companyId, boolean isActive);
     void deleteCompany(Long companyId);
     void reviewCompanyVerificationRequest(Long companyVerificationRequestId, Long reviewedById, boolean isApproved, String reason);

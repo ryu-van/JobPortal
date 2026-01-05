@@ -1,10 +1,7 @@
 package com.example.jobportal.dto.response;
 
-import com.example.jobportal.model.entity.Resume;
 import com.example.jobportal.model.entity.ResumeEducation;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+
 import lombok.*;
 
 import java.math.BigDecimal;

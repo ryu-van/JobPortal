@@ -35,11 +35,7 @@ public class JobDetailResponse extends JobBaseResponse {
     private LocalDateTime publishedAt;
     private LocalDateTime closedAt;
     private Set<String> categories;
-    private String street;
-    private String ward;
-    private String district;
-    private String city;
-    private String country;
+    private AddressResponse address;
     private Boolean applied;
     private LocalDateTime appliedAt;
 
@@ -51,11 +47,7 @@ public class JobDetailResponse extends JobBaseResponse {
                 .title(job.getTitle())
                 .companyName(job.getCompany().getName())
                 .companyLogo(job.getCompany().getLogoUrl())
-                .street(job.getAddress() != null ? job.getAddress().getStreet() : null)
-                .ward(job.getAddress() != null ? job.getAddress().getWard() : null)
-                .district(job.getAddress() != null ? job.getAddress().getDistrict() : null)
-                .city(job.getAddress() != null ? job.getAddress().getCity() : null)
-                .country(job.getAddress() != null ? job.getAddress().getCountry() : null)
+                .address(AddressResponse.fromEntity(job.getAddress()))
                 .isSalaryNegotiable(job.getIsSalaryNegotiable())
                 .salaryMin(job.getSalaryMin())
                 .salaryMax(job.getSalaryMax())

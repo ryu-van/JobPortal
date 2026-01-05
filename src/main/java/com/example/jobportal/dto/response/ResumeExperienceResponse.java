@@ -1,9 +1,6 @@
 package com.example.jobportal.dto.response;
 
 import com.example.jobportal.model.entity.ResumeExperience;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -27,7 +24,7 @@ public class ResumeExperienceResponse {
 
     private LocalDate endDate;
 
-    private Boolean isCurrent = false;
+    private Boolean isCurrent;
 
     private Integer displayOrder;
     public static ResumeExperienceResponse fromEntity(ResumeExperience resumeExperience) {

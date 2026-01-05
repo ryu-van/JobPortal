@@ -25,11 +25,7 @@ public class UpdateCompanyRequest {
 
     private String logoUrl;
 
-    private String street;
-    private String ward;
-    private String district;
-    private String city;
-    private String country;
+    private AddressRequest addressRequest;
 
     private Boolean isVerified = false;
 

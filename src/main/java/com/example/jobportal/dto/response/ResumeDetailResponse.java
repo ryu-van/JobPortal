@@ -26,16 +26,16 @@ public class ResumeDetailResponse {
 
     private String summary;
 
-    private Boolean isPrimary = false;
-    private Boolean isPublic = false;
+    private Boolean isPrimary;
+    private Boolean isPublic;
 
     private UserBaseResponse user;
 
-    private List<ResumeEducationResponse> educations = new ArrayList<>();
+    private List<ResumeEducationResponse> educations;
 
-    private List<ResumeExperienceResponse> experiences = new ArrayList<>();
+    private List<ResumeExperienceResponse> experiences;
 
-    private List<ResumeSkillResponse> skills = new ArrayList<>();
+    private List<ResumeSkillResponse> skills;
 
     public static ResumeDetailResponse fromEntity(Resume resume) {
         return ResumeDetailResponse.builder()

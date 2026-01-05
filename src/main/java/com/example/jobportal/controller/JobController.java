@@ -31,7 +31,7 @@ public class JobController extends BaseController {
             @RequestParam(defaultValue = "16") int size
 
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, size);
         Page<JobBaseResponse> jobPage = jobService.getBaseJobs(keyword, category, location, pageable);
 
         PageInfo pageInfo = PageInfo.of(

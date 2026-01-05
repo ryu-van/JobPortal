@@ -32,10 +32,11 @@ public class Job extends BaseEntity {
     private String responsibilities;
     private String benefits;
 
-    @Embedded
-    private BaseAddress address;
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "address_id")
+    private Address address;
 
-    private String workType;           // nên đặt camelCase
+    private String workType;
     private String employmentType;
     private String experienceLevel;
 

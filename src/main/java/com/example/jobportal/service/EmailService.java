@@ -35,7 +35,6 @@ public class EmailService {
 
             String htmlContent = buildVerificationCodeEmail(fullName, code);
             helper.setText(htmlContent, true);
-
             mailSender.send(message);
             log.info("✅ Verification code sent successfully to {}", toEmail);
 
@@ -45,7 +44,6 @@ public class EmailService {
             log.error("❌ Unexpected error while sending email to {}: {}", toEmail, e.getMessage(), e);
         }
     }
-
 
     private String buildVerificationCodeEmail(String username, String code) {
         return """

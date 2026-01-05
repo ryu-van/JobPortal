@@ -1,22 +1,40 @@
 package com.example.jobportal.controller;
 
-import com.example.jobportal.dto.request.NewCompanyVerificationRequest;
-import com.example.jobportal.dto.request.UpdateCompanyRequest;
-import com.example.jobportal.dto.response.*;
-import com.example.jobportal.exception.CompanyException;
-import com.example.jobportal.model.entity.Company;
-import com.example.jobportal.model.entity.CompanyInvitation;
-import com.example.jobportal.service.CompanyService;
-import com.example.jobportal.service.FileUploadService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
+import java.util.Date;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
-import java.util.List;
+import com.example.jobportal.dto.request.NewCompanyVerificationRequest;
+import com.example.jobportal.dto.request.UpdateCompanyRequest;
+import com.example.jobportal.dto.response.ApiResponse;
+import com.example.jobportal.dto.response.CompanyBaseResponse;
+import com.example.jobportal.dto.response.CompanyVerificationRequestDetailResponse;
+import com.example.jobportal.dto.response.CompanyVerificationRequestResponse;
+import com.example.jobportal.dto.response.InvitationResponse;
+import com.example.jobportal.dto.response.PageInfo;
+import com.example.jobportal.dto.response.UploadResultResponse;
+import com.example.jobportal.model.enums.UploadType;
+import com.example.jobportal.service.CompanyService;
+import com.example.jobportal.service.FileUploadService;
+
+import lombok.RequiredArgsConstructor;
 
 
 @RequiredArgsConstructor
@@ -25,7 +43,7 @@ import java.util.List;
 public class CompanyController extends BaseController {
 
     private final CompanyService companyService;
-    private FileUploadService fileUploadService;
+    private final FileUploadService fileUploadService;
 
     @GetMapping("/requests")
     public ResponseEntity<ApiResponse<List<CompanyVerificationRequestResponse>>> getRequestsToCreateCompany(
@@ -33,7 +51,7 @@ public class CompanyController extends BaseController {
             @RequestParam(required = false) String verifyStatus,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate createdDate,
+            Date createdDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "16") int size
     ) {
@@ -62,11 +80,13 @@ public class CompanyController extends BaseController {
         return ok("Get companies successfully", companyPage.getContent(), pageInfo);
     }
 
-    @PostMapping("/requests")
+    @PostMapping(value = "/requests", consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<CompanyVerificationRequestResponse>> createCompanyVerificationRequest(
-            @RequestBody NewCompanyVerificationRequest request
+            @RequestPart("data") NewCompanyVerificationRequest request,
+            @RequestPart(value = "documents", required = false) List<MultipartFile> documents
     ) {
-        CompanyVerificationRequestResponse response = companyService.createCompanyVerificationRequest(request);
+        CompanyVerificationRequestResponse response =
+                companyService.createCompanyVerificationRequest(request, documents);
         return ok("Create company verification request successfully", response);
     }
 
@@ -102,15 +122,23 @@ public class CompanyController extends BaseController {
         companyService.changeCompanyStatus(companyId, isActive);
         return ok("Change company status successfully");
     }
-    @PutMapping("/{companyId}")
+    @PutMapping(value = "/{companyId}", consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<CompanyBaseResponse>> updateCompany(
             @PathVariable Long companyId,
-            @RequestBody UpdateCompanyRequest companyRequest, MultipartFile file){
-        String logoUrl = fileUploadService.uploadFile(file);
-        companyRequest.setLogoUrl(logoUrl);
-        CompanyBaseResponse response = companyService.updateCompany(companyId, companyRequest);
+            @ModelAttribute UpdateCompanyRequest companyRequest,
+            @RequestPart(value = "file", required = false) MultipartFile file
+    ) {
+        if (file != null && !file.isEmpty()) {
+            UploadResultResponse uploadResultResponse =
+                    fileUploadService.uploadSingle(file, UploadType.IMAGES);
+            companyRequest.setLogoUrl(uploadResultResponse.getUrl());
+        }
+
+        CompanyBaseResponse response =
+                companyService.updateCompany(companyId, companyRequest);
         return ok("Update company successfully", response);
     }
+
 
     @DeleteMapping("/{companyId}")
     public ResponseEntity<ApiResponse<Void>> deleteCompany(@PathVariable Long companyId) {

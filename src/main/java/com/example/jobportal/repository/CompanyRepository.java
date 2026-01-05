@@ -20,12 +20,12 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
                     c.isActive,
                     c.industry,
                     c.companySize,
-                    c.address.city,
-                    c.address.country
+                    a.provinceName
                 )
                 FROM Company c
+                LEFT JOIN c.addresses a
                 WHERE (:keyword IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
-                  AND (:location IS NULL OR LOWER(c.address.city) LIKE LOWER(CONCAT('%', :location, '%')))
+                  AND (:location IS NULL OR (a IS NOT NULL AND LOWER(a.provinceName) LIKE LOWER(CONCAT('%', :location, '%'))))
                   AND (:isActive IS NULL OR c.isActive = :isActive)
             """)
     Page<CompanyBaseResponse> getAllCompanies(@Param("keyword") String keyword,

@@ -19,26 +19,31 @@ public interface CompanyVerificationRequestRepository extends JpaRepository<Comp
     CompanyVerificationRequest findByCompanyId(Long companyId);
 
     boolean existsByUserAndStatus(User sender, CompanyVerificationStatus companyVerificationStatus);
+
     @Query("""
-    SELECT new com.example.jobportal.dto.response.CompanyVerificationRequestResponse(
-        re.id,
-        re.companyName,
-        re.contactEmail,
-        CONCAT(re.address.street, ', ', re.address.ward, ', ', re.address.district, ', ', re.address.city),
-        re.status,
-        re.user.fullName,
-        re.createdAt
-    )
-    FROM CompanyVerificationRequest re
-    WHERE (:keyword IS NULL OR LOWER(re.contactEmail) LIKE LOWER(CONCAT('%', :keyword, '%')))
-      AND (:verifyStatus IS NULL OR re.status = :verifyStatus)
-      AND (:createdAt IS NULL OR re.createdAt >= :createdAt)
-    ORDER BY re.createdAt DESC
-""")
+                SELECT new com.example.jobportal.dto.response.CompanyVerificationRequestResponse(
+                    re.id,
+                    re.companyName,
+                    re.contactEmail,
+                    CONCAT(
+                        COALESCE(re.address.detailAddress, ''),
+                        CASE WHEN re.address.communeName IS NOT NULL THEN CONCAT(', ', re.address.communeName) ELSE '' END,
+                        CASE WHEN re.address.provinceName IS NOT NULL THEN CONCAT(', ', re.address.provinceName) ELSE '' END
+                    ),
+                    re.status,
+                    re.user.fullName,
+                    re.createdAt
+                )
+                FROM CompanyVerificationRequest re
+                WHERE (:keyword IS NULL OR LOWER(re.contactEmail) LIKE LOWER(CONCAT('%', :keyword, '%')))
+                  AND (:verifyStatus IS NULL OR re.status = :verifyStatus)
+                  AND (:createdAt IS NULL OR re.createdAt >= :createdAt)
+                ORDER BY re.createdAt DESC
+            """)
     Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(
             @Param("keyword") String keyword,
             @Param("verifyStatus") CompanyVerificationStatus verifyStatus,
-            @Param("createdAt") LocalDate createdAt,
+            @Param("createdAt") Date createdAt,
             Pageable pageable);
 
 }

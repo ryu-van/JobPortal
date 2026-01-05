@@ -1,4 +1,4 @@
-package com.example.jobportal.util;
+package com.example.jobportal.utils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.text.Normalizer;

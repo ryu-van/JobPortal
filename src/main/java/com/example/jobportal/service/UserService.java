@@ -22,5 +22,6 @@ public interface UserService {
     UserBaseResponse updateUser(Long id, UpdateUserRequest request);
     void toggleUserActive(Long id, Boolean isActive);
     void deleteUser(Long id);
-    String updateAvatar(Long id, MultipartFile file);
+    void updateAvatar(Long id, MultipartFile file);
+    void deleteAvatar(Long userId);
 }

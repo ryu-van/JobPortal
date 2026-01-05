@@ -29,6 +29,8 @@ public class Resume extends BaseEntity {
 
     private String fileType;
 
+    private String filePublicId;
+
     private String summary;
 
     private Boolean isPrimary = false;

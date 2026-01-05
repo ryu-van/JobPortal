@@ -22,11 +22,11 @@ public class CompanyVerificationRequestResponse {
     private Date createdAt;
 
     public static CompanyVerificationRequestResponse fromEntity(CompanyVerificationRequest companyVerificationRequest) {
-        String address = companyVerificationRequest.getAddress().getStreet()+", "+
-                companyVerificationRequest.getAddress().getWard()+", "+
-                companyVerificationRequest.getAddress().getDistrict()+", "+
-                companyVerificationRequest.getAddress().getCity()+", "+
-                companyVerificationRequest.getAddress().getCountry();
+        String address = null;
+        if (companyVerificationRequest.getAddress() != null) {
+            StringBuilder sb = getStringBuilder(companyVerificationRequest);
+            address = sb.toString();
+        }
         CompanyVerificationRequestResponse response = new CompanyVerificationRequestResponse();
         response.id = companyVerificationRequest.getId();
         response.companyName = companyVerificationRequest.getCompanyName();
@@ -36,5 +36,21 @@ public class CompanyVerificationRequestResponse {
         response.createdAt = companyVerificationRequest.getCreatedAt();
         response.address = address;
         return response;
+    }
+
+    private static StringBuilder getStringBuilder(CompanyVerificationRequest companyVerificationRequest) {
+        StringBuilder sb = new StringBuilder();
+        if (companyVerificationRequest.getAddress().getDetailAddress() != null) {
+            sb.append(companyVerificationRequest.getAddress().getDetailAddress());
+        }
+        if (companyVerificationRequest.getAddress().getCommuneName() != null) {
+            if (!sb.isEmpty()) sb.append(", ");
+            sb.append(companyVerificationRequest.getAddress().getCommuneName());
+        }
+        if (companyVerificationRequest.getAddress().getProvinceName() != null) {
+            if (!sb.isEmpty()) sb.append(", ");
+            sb.append(companyVerificationRequest.getAddress().getProvinceName());
+        }
+        return sb;
     }
 }

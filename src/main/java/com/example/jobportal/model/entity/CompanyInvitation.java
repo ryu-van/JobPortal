@@ -45,7 +45,6 @@ public class CompanyInvitation {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // --- Lifecycle hook ---
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();

@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -94,9 +95,7 @@ public class AuthServiceImpl implements AuthService{
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .code(userCode)
-                .gender(request.getGender())
                 .role(role)
-                .company(company)
                 .isActive(true)
                 .isEmailVerified(false)
                 .verificationToken(otpToken)
@@ -110,6 +109,7 @@ public class AuthServiceImpl implements AuthService{
 
         if (request.getCodeInvitation() != null && !request.getCodeInvitation().isBlank()) {
             try {
+
                 CompanyInvitation usedInvitation = companyService.useInvitation(request.getCodeInvitation());
                 log.info("🔁 Invitation {} used successfully ({}/{})",
                         usedInvitation.getCode(),
@@ -207,6 +207,11 @@ public class AuthServiceImpl implements AuthService{
     @Override
     public AuthResponse getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            throw  UserException.forbidden("Chưa đăng nhập");
+        }
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         User user = userDetails.getUser();
         return createAuthResponse(null, null, user);
@@ -298,7 +303,7 @@ public class AuthServiceImpl implements AuthService{
         userResponse.setCode(user.getCode());
         userResponse.setActive(user.getIsActive());
         userResponse.setTokenExpiryDate(user.getTokenExpiryDate());
-
+        userResponse.setAvatarUrl(user.getAvatarUrl());
         AuthResponse authResponse = new AuthResponse();
         authResponse.setAccessToken(accessToken);
         authResponse.setRefreshToken(refreshToken);

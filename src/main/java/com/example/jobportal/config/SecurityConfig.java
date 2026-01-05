@@ -29,6 +29,7 @@ public class SecurityConfig {
 
         String authPath       = apiPrefix + "/auth/**";
         String userPath       = apiPrefix + "/users/**";
+        String jobPath        = apiPrefix + "/jobs/**";
 
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -42,6 +43,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(authPath).permitAll()
                         .requestMatchers(userPath).hasAnyRole("USER", "HR", "ADMIN", "COMPANY_ADMIN")
+                        .requestMatchers(jobPath).hasAnyRole("USER", "HR", "ADMIN", "COMPANY_ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(

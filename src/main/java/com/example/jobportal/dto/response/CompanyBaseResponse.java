@@ -18,10 +18,25 @@ public class CompanyBaseResponse {
     private Boolean isActive;
     private String industry;
     private String companySize;
-    private String city;
-    private String country;
+    private AddressResponse address;
+
+    public CompanyBaseResponse(Long id, String name, String email, Boolean isVerified, Boolean isActive, String industry, String companySize, String provinceName) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.isVerified = isVerified;
+        this.isActive = isActive;
+        this.industry = industry;
+        this.companySize = companySize;
+        if (provinceName != null) {
+            this.address = AddressResponse.builder()
+                    .provinceName(provinceName)
+                    .build();
+        }
+    }
 
     public static CompanyBaseResponse fromEntity(Company company) {
+        
         return CompanyBaseResponse.builder()
                 .id(company.getId())
                 .name(company.getName())
@@ -30,8 +45,13 @@ public class CompanyBaseResponse {
                 .isActive(company.getIsActive())
                 .industry(company.getIndustry())
                 .companySize(company.getCompanySize())
-                .city(company.getAddress() != null ? company.getAddress().getCity() : null)
-                .country(company.getAddress() != null ? company.getAddress().getCountry() : null)
+                .address(company.getAddresses() != null
+                        ? company.getAddresses().stream()
+                        .filter(a -> Boolean.TRUE.equals(a.getIsPrimary()))
+                        .findFirst()
+                        .map(AddressResponse::fromEntity)
+                        .orElse(null)
+                        : null)
                 .build();
     }
 

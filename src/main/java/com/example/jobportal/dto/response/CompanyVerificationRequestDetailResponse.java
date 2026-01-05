@@ -1,13 +1,14 @@
 package com.example.jobportal.dto.response;
 
-import com.example.jobportal.model.entity.BaseAddress;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import com.example.jobportal.model.entity.CompanyVerificationRequest;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -31,9 +32,7 @@ public class CompanyVerificationRequestDetailResponse {
 
     private String contactPhone;
 
-    private String documents;
-
-    private String requestedRole;
+    private List<DocumentFileResponse> documentFiles;
 
     private String status ;
 
@@ -41,11 +40,7 @@ public class CompanyVerificationRequestDetailResponse {
 
     private LocalDateTime reviewedAt;
 
-    private String street;
-    private String ward;
-    private String district;
-    private String city;
-    private String country;
+    private AddressResponse addressResponse;
 
     private String userName;
 
@@ -63,19 +58,30 @@ public class CompanyVerificationRequestDetailResponse {
         companyVerificationRequestDetailResponse.setContactPerson(companyVerificationRequest.getContactPerson());
         companyVerificationRequestDetailResponse.setContactEmail(companyVerificationRequest.getContactEmail());
         companyVerificationRequestDetailResponse.setContactPhone(companyVerificationRequest.getContactPhone());
-        companyVerificationRequestDetailResponse.setDocuments(companyVerificationRequest.getDocuments());
-        companyVerificationRequestDetailResponse.setRequestedRole(companyVerificationRequest.getRequestedRole());
         companyVerificationRequestDetailResponse.setStatus(companyVerificationRequest.getStatus().toString());
         companyVerificationRequestDetailResponse.setAdminNotes(companyVerificationRequest.getAdminNotes());
         companyVerificationRequestDetailResponse.setReviewedAt(companyVerificationRequest.getReviewedAt());
-        companyVerificationRequestDetailResponse.setStreet(companyVerificationRequest.getAddress().getStreet());
-        companyVerificationRequestDetailResponse.setWard(companyVerificationRequest.getAddress().getWard());
-        companyVerificationRequestDetailResponse.setDistrict(companyVerificationRequest.getAddress().getDistrict());
-        companyVerificationRequestDetailResponse.setCity(companyVerificationRequest.getAddress().getCity());
-        companyVerificationRequestDetailResponse.setCountry(companyVerificationRequest.getAddress().getCountry());
+        companyVerificationRequestDetailResponse.setAddressResponse(AddressResponse.fromEntity(companyVerificationRequest.getAddress()));
+        companyVerificationRequestDetailResponse.setDocumentFiles(
+                companyVerificationRequest.getDocumentFiles() != null
+                        ? companyVerificationRequest.getDocumentFiles().stream()
+                        .map(df -> DocumentFileResponse.builder()
+                                .fileName(df.getFileName())
+                                .url(df.getUrl())
+                                .publicId(df.getPublicId())
+                                .contentType(df.getContentType())
+                                .fileSize(df.getFileSize())
+                                .uploadedAt(df.getUploadedAt())
+                                .build())
+                        .toList()
+                        : null
+        );
+
         companyVerificationRequestDetailResponse.setUserName(companyVerificationRequest.getUser().getFullName());
-        companyVerificationRequestDetailResponse.setReviewedByName(companyVerificationRequest.getReviewedBy().getFullName());
-        companyVerificationRequestDetailResponse.setReviewedByEmail(companyVerificationRequest.getReviewedBy().getEmail());
+        if (companyVerificationRequest.getReviewedBy() != null) {
+            companyVerificationRequestDetailResponse.setReviewedByName(companyVerificationRequest.getReviewedBy().getFullName());
+            companyVerificationRequestDetailResponse.setReviewedByEmail(companyVerificationRequest.getReviewedBy().getEmail());
+        }
         return companyVerificationRequestDetailResponse;
     }
 

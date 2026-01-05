@@ -30,7 +30,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
                     u.isActive,
                     u.isEmailVerified,
                     u.tokenExpiryDate,
-                    u.phoneNumber
+                    u.phoneNumber,
+                    u.avatarUrl
                 )
                 FROM User u
                 WHERE u.role.id = 2
@@ -54,7 +55,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
                     u.isActive,
                     u.isEmailVerified,
                     u.tokenExpiryDate,
-                    u.phoneNumber
+                    u.phoneNumber,
+                    u.avatarUrl
                 )
                 FROM User u
                 WHERE u.role.id = :roleId
@@ -69,7 +71,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmail(String email);
 
-     Optional<User> findById(Long id);
+    Optional<User> findById(Long id);
 
     @Query("SELECT u FROM User u WHERE u.role.name = :roleName AND u.isActive = true")
     List<User> findAllByRoleName(String roleName);
@@ -77,31 +79,32 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByCode(String code);
 
     @Query("""
-    SELECT new com.example.jobportal.dto.response.UserBaseResponse(
-        u.id,
-        u.fullName,
-        u.code,
-        u.email,
-        u.gender,
-        u.role.id,
-        u.role.name,
-        u.isActive,
-        u.isEmailVerified,
-        u.tokenExpiryDate,
-        u.phoneNumber
-    )
-    FROM User u
-    WHERE u.company.id = :companyId
-      AND (:keyword IS NULL OR 
-           LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-           OR LOWER(u.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-           OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
-      )
-      AND (:isActive IS NULL OR u.isActive = :isActive)
-    ORDER BY 
-        CASE WHEN :asc = 'asc' THEN u.fullName END ASC,
-        CASE WHEN :asc = 'desc' THEN u.fullName END DESC
-""")
+                SELECT new com.example.jobportal.dto.response.UserBaseResponse(
+                    u.id,
+                    u.fullName,
+                    u.code,
+                    u.email,
+                    u.gender,
+                    u.role.id,
+                    u.role.name,
+                    u.isActive,
+                    u.isEmailVerified,
+                    u.tokenExpiryDate,
+                    u.phoneNumber,
+                    u.avatarUrl
+                )
+                FROM User u
+                WHERE u.company.id = :companyId
+                  AND (:keyword IS NULL OR 
+                       LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                       OR LOWER(u.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                       OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                  )
+                  AND (:isActive IS NULL OR u.isActive = :isActive)
+                ORDER BY 
+                    CASE WHEN :asc = 'asc' THEN u.fullName END ASC,
+                    CASE WHEN :asc = 'desc' THEN u.fullName END DESC
+            """)
     List<UserBaseResponse> getUserInCompany(
             String keyword,
             Boolean isActive,

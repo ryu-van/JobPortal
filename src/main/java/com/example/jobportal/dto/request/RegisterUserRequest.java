@@ -13,7 +13,6 @@ public class RegisterUserRequest {
     private String fullName;
     private String email;
     private String password;
-    private Boolean gender;
     private Long roleId;
     private String codeInvitation;
 

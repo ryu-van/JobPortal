@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -16,7 +18,7 @@ public class NewCompanyVerificationRequest {
     @NotBlank(message = "Tên công ty không được để trống")
     private String companyName;
 
-    @NotBlank(message = "Giấy phép kinh doanh không được để trống")
+    @NotBlank(message = "Mã giấy phép kinh doanh không được để trống")
     private String businessLicense;
 
     @NotBlank(message = "Mã số thuế không được để trống")
@@ -30,19 +32,6 @@ public class NewCompanyVerificationRequest {
     private String contactEmail;
     private String contactPhone;
 
-    private String street;
-    private String ward;
-    private String district;
-    private String city;
-    private String country;
-
-
-    // JSON chứa link giấy tờ, file đính kèm,
-    private String documents;
-
-    // Vai trò yêu cầu sau khi duyệt (hr / company_admin)
-    private String requestedRole;
-
-    private Long senderId;
+    private AddressRequest addressRequest;
 
 }

@@ -17,11 +17,10 @@ public class JobBaseResponse {
     private Long id;
     private String title;
     private String companyName;
-    private String street;
-    private String ward;
-    private String district;
-    private String city;
+
+    private AddressResponse address;
     private String companyLogo;
+
     private Boolean isSalaryNegotiable;
     private BigDecimal salaryMin;
     private BigDecimal salaryMax;
@@ -30,14 +29,12 @@ public class JobBaseResponse {
 
 
     public static JobBaseResponse fromEntity(Job job) {
+        if (job == null) return null;
         return JobBaseResponse.builder()
                 .id(job.getId())
                 .title(job.getTitle())
                 .companyName(job.getCompany().getName())
-                .street(job.getAddress().getStreet())
-                .ward(job.getAddress().getWard())
-                .district(job.getAddress().getDistrict())
-                .city(job.getAddress().getCity())
+                .address(AddressResponse.fromEntity(job.getAddress()))
                 .companyLogo(job.getCompany().getLogoUrl())
                 .isSalaryNegotiable(job.getIsSalaryNegotiable())
                 .salaryMin(job.getSalaryMin())

@@ -19,6 +19,7 @@ import java.util.List;
 public class ApplicationController extends BaseController {
 
     private final ApplicationService applicationService;
+    
 
     @PostMapping("/")
     public ResponseEntity<ApiResponse<ApplicationResponse>> applyForJob(

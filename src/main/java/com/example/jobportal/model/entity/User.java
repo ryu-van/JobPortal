@@ -41,8 +41,7 @@ public class User extends BaseEntity {
 
     private String avatarUrl;
 
-    @Embedded
-    private BaseAddress address;
+    private String avatarPublicId;
 
     @Column(nullable = false)
     private Boolean isActive = true;
@@ -58,6 +57,10 @@ public class User extends BaseEntity {
 
     @Column(name = "token_expiry_date")
     private Date tokenExpiryDate;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "address_id")
+    private Address address;
 
     @ManyToOne
     @JoinColumn(name = "role_id", nullable = false)
