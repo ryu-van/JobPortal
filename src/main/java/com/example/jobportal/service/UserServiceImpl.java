@@ -1,5 +1,13 @@
 package com.example.jobportal.service;
 
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.example.jobportal.dto.request.UpdateUserRequest;
 import com.example.jobportal.dto.response.UploadResultResponse;
 import com.example.jobportal.dto.response.UserBaseResponse;
@@ -13,14 +21,8 @@ import com.example.jobportal.model.enums.UploadType;
 import com.example.jobportal.repository.CompanyRepository;
 import com.example.jobportal.repository.RoleRepository;
 import com.example.jobportal.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -31,18 +33,47 @@ public class UserServiceImpl implements UserService {
     private final FileUploadService fileUploadService;
 
     @Override
-    public Page<UserBaseResponse> getUsersByHrRole(String keyword, String companyName, Boolean isActive, Pageable pageable) {
-        return userRepository.getUserByHrRole(keyword, companyName, isActive, pageable);
+    public Page<UserBaseResponse> getUsersByRole(
+            String role,
+            String keyword,
+            String companyName,
+            Boolean isActive,
+            Pageable pageable
+    ) {
+        String normalized = role == null ? null : role.trim().toUpperCase();
+        String keywordPattern = toLikePatternLower(keyword);
+
+        Long roleId = null;
+
+        if (normalized == null || "ALL".equals(normalized)) {
+            roleId = null;
+        } else if ("HR".equals(normalized)) {
+            roleId = (long) Role.ROLE_HR.getId();
+        } else if ("CANDIDATE".equals(normalized)) {
+            roleId = (long) Role.ROLE_CANDIDATE.getId();
+        } else if ("ADMIN_COMPANY".equals(normalized)) {
+            roleId = (long) Role.ROLE_COMPANY_ADMIN.getId();
+
+        } else if ("ADMIN".equals(normalized)) {
+            roleId = (long) Role.ROLE_ADMIN.getId();
+        }
+        else {
+            throw new IllegalArgumentException(
+                    "Invalid role value. Allowed: ALL, HR, CANDIDATE, ADMIN_COMPANY"
+            );
+        }
+
+        return userRepository.getUsersByRole(
+                roleId,
+                keywordPattern,
+                isActive,
+                pageable
+        );
     }
 
-    @Override
-    public Page<UserBaseResponse> getUsersByAdminCompanyRole(String keyword, Boolean isActive, Pageable pageable) {
-        return userRepository.getUserByRole(keyword, isActive, pageable, (long) Role.ROLE_COMPANY_ADMIN.getId());
-    }
-
-    @Override
-    public Page<UserBaseResponse> getUsersByCandidateRole(String keyword, Boolean isActive, Pageable pageable) {
-        return userRepository.getUserByRole(keyword, isActive, pageable, (long) Role.ROLE_CANDIDATE.getId());
+    private static String toLikePatternLower(String s) {
+        if (s == null || s.isBlank()) return null;
+        return "%" + s.toLowerCase() + "%";
     }
 
     @Override

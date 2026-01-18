@@ -19,6 +19,13 @@ public abstract class BaseEntity {
     @Column(name = "updated_at")
     private Date updatedAt;
 
+    @PrePersist
+    protected void onCreate() {
+        Date now = new Date();
+        createdAt = now;
+        updatedAt = now;
+    }
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = new Date();

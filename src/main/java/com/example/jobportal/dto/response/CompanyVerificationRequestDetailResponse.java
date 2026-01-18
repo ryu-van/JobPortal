@@ -1,14 +1,12 @@
 package com.example.jobportal.dto.response;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 import com.example.jobportal.model.entity.CompanyVerificationRequest;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,7 +30,9 @@ public class CompanyVerificationRequestDetailResponse {
 
     private String contactPhone;
 
-    private List<DocumentFileResponse> documentFiles;
+    private String documents;
+
+    private String requestedRole;
 
     private String status ;
 
@@ -40,7 +40,11 @@ public class CompanyVerificationRequestDetailResponse {
 
     private LocalDateTime reviewedAt;
 
-    private AddressResponse addressResponse;
+    private String street;
+    private String ward;
+    private String district;
+    private String city;
+    private String country;
 
     private String userName;
 
@@ -58,30 +62,16 @@ public class CompanyVerificationRequestDetailResponse {
         companyVerificationRequestDetailResponse.setContactPerson(companyVerificationRequest.getContactPerson());
         companyVerificationRequestDetailResponse.setContactEmail(companyVerificationRequest.getContactEmail());
         companyVerificationRequestDetailResponse.setContactPhone(companyVerificationRequest.getContactPhone());
+        companyVerificationRequestDetailResponse.setDocuments(String.join(",", companyVerificationRequest.getDocumentUrls()));
         companyVerificationRequestDetailResponse.setStatus(companyVerificationRequest.getStatus().toString());
         companyVerificationRequestDetailResponse.setAdminNotes(companyVerificationRequest.getAdminNotes());
         companyVerificationRequestDetailResponse.setReviewedAt(companyVerificationRequest.getReviewedAt());
-        companyVerificationRequestDetailResponse.setAddressResponse(AddressResponse.fromEntity(companyVerificationRequest.getAddress()));
-        companyVerificationRequestDetailResponse.setDocumentFiles(
-                companyVerificationRequest.getDocumentFiles() != null
-                        ? companyVerificationRequest.getDocumentFiles().stream()
-                        .map(df -> DocumentFileResponse.builder()
-                                .fileName(df.getFileName())
-                                .url(df.getUrl())
-                                .publicId(df.getPublicId())
-                                .contentType(df.getContentType())
-                                .fileSize(df.getFileSize())
-                                .uploadedAt(df.getUploadedAt())
-                                .build())
-                        .toList()
-                        : null
-        );
-
+        companyVerificationRequestDetailResponse.setStreet(companyVerificationRequest.getAddress() != null ? companyVerificationRequest.getAddress().getDetailAddress() : null);
+        companyVerificationRequestDetailResponse.setWard(companyVerificationRequest.getAddress() != null ? companyVerificationRequest.getAddress().getCommuneName() : null);
+        companyVerificationRequestDetailResponse.setCity(companyVerificationRequest.getAddress() != null ? companyVerificationRequest.getAddress().getProvinceName() : null);
         companyVerificationRequestDetailResponse.setUserName(companyVerificationRequest.getUser().getFullName());
-        if (companyVerificationRequest.getReviewedBy() != null) {
-            companyVerificationRequestDetailResponse.setReviewedByName(companyVerificationRequest.getReviewedBy().getFullName());
-            companyVerificationRequestDetailResponse.setReviewedByEmail(companyVerificationRequest.getReviewedBy().getEmail());
-        }
+        companyVerificationRequestDetailResponse.setReviewedByName(companyVerificationRequest.getReviewedBy().getFullName());
+        companyVerificationRequestDetailResponse.setReviewedByEmail(companyVerificationRequest.getReviewedBy().getEmail());
         return companyVerificationRequestDetailResponse;
     }
 

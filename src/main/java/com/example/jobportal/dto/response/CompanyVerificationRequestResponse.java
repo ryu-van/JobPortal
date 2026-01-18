@@ -24,7 +24,18 @@ public class CompanyVerificationRequestResponse {
     public static CompanyVerificationRequestResponse fromEntity(CompanyVerificationRequest companyVerificationRequest) {
         String address = null;
         if (companyVerificationRequest.getAddress() != null) {
-            StringBuilder sb = getStringBuilder(companyVerificationRequest);
+            StringBuilder sb = new StringBuilder();
+            if (companyVerificationRequest.getAddress().getDetailAddress() != null) {
+                sb.append(companyVerificationRequest.getAddress().getDetailAddress());
+            }
+            if (companyVerificationRequest.getAddress().getCommuneName() != null) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(companyVerificationRequest.getAddress().getCommuneName());
+            }
+            if (companyVerificationRequest.getAddress().getProvinceName() != null) {
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(companyVerificationRequest.getAddress().getProvinceName());
+            }
             address = sb.toString();
         }
         CompanyVerificationRequestResponse response = new CompanyVerificationRequestResponse();
@@ -36,21 +47,5 @@ public class CompanyVerificationRequestResponse {
         response.createdAt = companyVerificationRequest.getCreatedAt();
         response.address = address;
         return response;
-    }
-
-    private static StringBuilder getStringBuilder(CompanyVerificationRequest companyVerificationRequest) {
-        StringBuilder sb = new StringBuilder();
-        if (companyVerificationRequest.getAddress().getDetailAddress() != null) {
-            sb.append(companyVerificationRequest.getAddress().getDetailAddress());
-        }
-        if (companyVerificationRequest.getAddress().getCommuneName() != null) {
-            if (!sb.isEmpty()) sb.append(", ");
-            sb.append(companyVerificationRequest.getAddress().getCommuneName());
-        }
-        if (companyVerificationRequest.getAddress().getProvinceName() != null) {
-            if (!sb.isEmpty()) sb.append(", ");
-            sb.append(companyVerificationRequest.getAddress().getProvinceName());
-        }
-        return sb;
     }
 }

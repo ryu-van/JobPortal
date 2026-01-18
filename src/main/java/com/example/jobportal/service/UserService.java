@@ -14,9 +14,7 @@ import java.util.List;
 @Service
 public interface UserService {
 
-    Page<UserBaseResponse> getUsersByHrRole(String keyword, String companyName, Boolean isActive, Pageable pageable);
-    Page<UserBaseResponse> getUsersByAdminCompanyRole(String keyword, Boolean isActive, Pageable pageable);
-    Page<UserBaseResponse> getUsersByCandidateRole(String keyword, Boolean isActive, Pageable pageable);
+    Page<UserBaseResponse> getUsersByRole(String role, String keyword, String companyName, Boolean isActive, Pageable pageable);
     List<UserBaseResponse> getHrUsersInCompany(String keyword, Boolean isActive, Long companyId,String asc);
     UserDetailResponse getUserById(Long id);
     UserBaseResponse updateUser(Long id, UpdateUserRequest request);

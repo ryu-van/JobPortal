@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum Role {
-    ROLE_ADMIN(1, "Admin"),
-    ROLE_HR(2, "HR"),
+    ROLE_ADMIN(1, "Quản trị hệ thống"),
+    ROLE_HR(2, "Tuyển dụng"),
     ROLE_CANDIDATE(3, "Ứng viên"),
     ROLE_COMPANY_ADMIN(4, "Quản trị doanh nghiệp");
 

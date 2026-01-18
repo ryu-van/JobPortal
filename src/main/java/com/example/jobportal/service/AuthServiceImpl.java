@@ -3,7 +3,6 @@ package com.example.jobportal.service;
 import com.example.jobportal.exception.RoleException;
 import com.example.jobportal.exception.UserException;
 import com.example.jobportal.model.entity.*;
-import com.example.jobportal.repository.CompanyInvitationRepository;
 import com.example.jobportal.security.CustomUserDetails;
 import com.example.jobportal.security.JwtAuthenticationFilter;
 import com.example.jobportal.dto.request.LoginRequest;
@@ -64,6 +63,10 @@ public class AuthServiceImpl implements AuthService{
 
         Company company = null;
         Role role;
+
+        if(request.getRoleId() == null && (request.getCodeInvitation() == null || request.getCodeInvitation().isBlank())) {
+            throw RoleException.badRequest("Role ID không hợp lệ");
+        }
 
         if (request.getCodeInvitation() != null && !request.getCodeInvitation().isBlank()) {
             log.info("🎫 Processing invitation code: {}", request.getCodeInvitation());
@@ -269,6 +272,9 @@ public class AuthServiceImpl implements AuthService{
 
 
     private void saveRefreshToken(User user, String token) {
+        if (refreshTokenExpiration==null){
+            throw new IllegalStateException("refreshTokenExpiration is null!");
+        }
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setToken(token);
         refreshToken.setUser(user);
@@ -294,11 +300,18 @@ public class AuthServiceImpl implements AuthService{
         userResponse.setId(user.getId());
         userResponse.setEmail(user.getEmail());
         userResponse.setFullName(user.getFullName());
-        userResponse.setRoleName(user.getRole().getName());
+        String displayName = null;
+        Long rid = user.getRole().getId();
+        for (com.example.jobportal.model.enums.Role r : com.example.jobportal.model.enums.Role.values()) {
+            if (r.getId() == rid.intValue()) {
+                displayName = r.getDisplayName();
+                break;
+            }
+        }
+        userResponse.setRoleName(displayName != null ? displayName : user.getRole().getName());
         userResponse.setEmailVerified(user.getIsEmailVerified());
         userResponse.setPhoneNumber(user.getPhoneNumber());
         userResponse.setRoleId(user.getRole().getId());
-        userResponse.setRoleName(user.getRole().getName());
         userResponse.setGender(user.getGender());
         userResponse.setCode(user.getCode());
         userResponse.setActive(user.getIsActive());
