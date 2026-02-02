@@ -28,7 +28,7 @@ public class CompanyInvitation {
     private String code;
 
     @Column(nullable = false, length = 50)
-    private String role = "hr";
+    private String role = "HR";
 
     private String email;
 

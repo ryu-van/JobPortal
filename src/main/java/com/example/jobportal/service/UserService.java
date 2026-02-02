@@ -1,5 +1,6 @@
 package com.example.jobportal.service;
 
+import com.example.jobportal.dto.request.CreateUserRequest;
 import com.example.jobportal.dto.request.UpdateUserRequest;
 import com.example.jobportal.dto.response.JobBaseResponseV2;
 import com.example.jobportal.dto.response.UserBaseResponse;

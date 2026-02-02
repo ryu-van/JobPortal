@@ -157,7 +157,7 @@ public class CompanyController extends BaseController {
         companyService.reviewCompanyVerificationRequest(requestId, reviewedById, isApproved, reason);
         return ok("Review company verification request successfully");
     }
-    @PostMapping("/invitations")
+    @PostMapping("/")
     public ResponseEntity<ApiResponse<InvitationResponse>> createInvitation(
             @RequestParam Long companyId,
             @RequestParam Long createdById,

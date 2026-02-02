@@ -1,18 +1,18 @@
 package com.example.jobportal.service;
 
-import com.theokanning.openai.completion.chat.ChatCompletionRequest;
-import com.theokanning.openai.completion.chat.ChatCompletionResult;
-import com.theokanning.openai.completion.chat.ChatMessage;
-import com.theokanning.openai.service.OpenAiService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
-@RequiredArgsConstructor
 public class AiResumeParserService {
-    private final OpenAiService openAiService;
+
+    private final ChatClient chatClient;
+
+    public AiResumeParserService(ChatClient.Builder chatClientBuilder) {
+        this.chatClient = chatClientBuilder.build();
+    }
 
     public String parseResume(String text) {
 
@@ -63,21 +63,18 @@ public class AiResumeParserService {
                     - Output must be pure JSON, nothing else.
                 
                     Resume text:
-                    {{resume_text_here}}
+                    %s
                 
-                """ + text;
+                """.formatted(text);
 
-        ChatCompletionRequest request = ChatCompletionRequest.builder()
-                .model("gpt-4o-mini")
-                .messages(List.of(
-                        new ChatMessage("system", "You are a resume parser that outputs only JSON."),
-                        new ChatMessage("user", prompt)
-                ))
-                .temperature(0.2)
-                .build();
-
-        ChatCompletionResult result = openAiService.createChatCompletion(request);
-
-        return result.getChoices().getFirst().getMessage().getContent();
+        return chatClient.prompt()
+                .system("You are a resume parser that outputs only JSON.")
+                .user(prompt)
+                .options(OpenAiChatOptions.builder()
+                        .withModel("gpt-4o-mini")
+                        .withTemperature(0.2)
+                        .build())
+                .call()
+                .content();
     }
 }

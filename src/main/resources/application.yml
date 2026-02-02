@@ -7,6 +7,17 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 60000
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -56,7 +67,3 @@ cloudinary:
   cloud-name: ${CLOUD_NAME}
   api-key: ${CLOUD_API_KEY}
   api-secret: ${CLOUD_API_SECRET}
-
-openai:
-  api:
-    key: ${OPEN_API_KEY}

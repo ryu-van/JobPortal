@@ -2,6 +2,7 @@ package com.example.jobportal.service;
 
 import java.util.List;
 
+import com.example.jobportal.dto.request.CreateUserRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import com.example.jobportal.model.enums.UploadType;
 import com.example.jobportal.repository.CompanyRepository;
 import com.example.jobportal.repository.RoleRepository;
 import com.example.jobportal.repository.UserRepository;
+import com.example.jobportal.constant.AppConstants;
 
 import lombok.RequiredArgsConstructor;
 
@@ -47,20 +49,18 @@ public class UserServiceImpl implements UserService {
 
         if (normalized == null || "ALL".equals(normalized)) {
             roleId = null;
-        } else if ("HR".equals(normalized)) {
+        } else if (AppConstants.ROLE_HR.equals(normalized)) {
             roleId = (long) Role.ROLE_HR.getId();
-        } else if ("CANDIDATE".equals(normalized)) {
+        } else if (AppConstants.ROLE_CANDIDATE.equals(normalized)) {
             roleId = (long) Role.ROLE_CANDIDATE.getId();
-        } else if ("ADMIN_COMPANY".equals(normalized)) {
+        } else if (AppConstants.ROLE_COMPANY_ADMIN.equals(normalized)) {
             roleId = (long) Role.ROLE_COMPANY_ADMIN.getId();
 
-        } else if ("ADMIN".equals(normalized)) {
+        } else if (AppConstants.ROLE_ADMIN.equals(normalized)) {
             roleId = (long) Role.ROLE_ADMIN.getId();
         }
         else {
-            throw new IllegalArgumentException(
-                    "Invalid role value. Allowed: ALL, HR, CANDIDATE, ADMIN_COMPANY"
-            );
+            throw new IllegalArgumentException("Invalid role value. Allowed: ALL, HR, CANDIDATE, COMPANY_ADMIN");
         }
 
         return userRepository.getUsersByRole(
@@ -196,6 +196,8 @@ public class UserServiceImpl implements UserService {
         user.setAvatarPublicId(null);
         userRepository.save(user);
     }
+
+
 
 
 }

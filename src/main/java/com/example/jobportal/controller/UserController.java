@@ -8,15 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.jobportal.dto.request.UpdateUserRequest;
@@ -75,7 +67,7 @@ public class UserController extends BaseController {
             @RequestParam(required = false) String companyName,
             @RequestParam(required = false) Boolean isActive,
             @RequestParam(defaultValue = "0") int pageNo,
-            @RequestParam(defaultValue = "16") int size,
+            @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "asc") String asc
     ) {
         Sort sort = Sort.by("fullName");
@@ -97,6 +89,22 @@ public class UserController extends BaseController {
         List<UserBaseResponse> listUserInCompany = userService.getHrUsersInCompany(keyword, isActive, companyId, asc);
         return ok("Get list of user in the company", listUserInCompany);
     }
+
+/*
+    @PostMapping
+    public ResponseEntity<ApiResponse<UserBaseResponse>> createUser
+            (@RequestBody UpdateUserRequest updateUserRequest,
+             @RequestParam("file") MultipartFile file)
+    {
+        // Method createUser not implemented in UserService yet
+        // UserBaseResponse createdUser = userService.createUser(updateUserRequest, file);
+        // return created("User created successfully", createdUser);
+        return null;
+
+    }
+*/
+
+
 
 
 }

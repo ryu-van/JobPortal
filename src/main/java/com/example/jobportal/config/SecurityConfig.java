@@ -1,22 +1,28 @@
 package com.example.jobportal.config;
 
-import com.example.jobportal.security.JwtAuthenticationEntryPoint;
-import com.example.jobportal.security.JwtAuthenticationFilter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
+import com.example.jobportal.constant.AppConstants;
+import com.example.jobportal.security.JwtAuthenticationEntryPoint;
+import com.example.jobportal.security.JwtAuthenticationFilter;
+
+import lombok.RequiredArgsConstructor;
+
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -41,9 +47,11 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(authPath).permitAll()
-                        .requestMatchers(userPath).hasAnyRole("USER", "HR", "ADMIN", "COMPANY_ADMIN")
-                        .requestMatchers(jobPath).hasAnyRole("USER", "HR", "ADMIN", "COMPANY_ADMIN")
+                        .requestMatchers(userPath).hasAnyRole(AppConstants.ROLE_CANDIDATE, AppConstants.ROLE_HR, AppConstants.ROLE_ADMIN, AppConstants.ROLE_COMPANY_ADMIN)
+                        .requestMatchers(jobPath).hasAnyRole(AppConstants.ROLE_CANDIDATE, AppConstants.ROLE_HR, AppConstants.ROLE_ADMIN, AppConstants.ROLE_COMPANY_ADMIN)
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(

@@ -1,28 +1,41 @@
 package com.example.jobportal.service;
 
-import com.example.jobportal.dto.request.JobRequest;
-import com.example.jobportal.dto.response.JobBaseResponse;
-import com.example.jobportal.dto.response.JobBaseResponseV2;
-import com.example.jobportal.dto.response.JobDetailResponse;
-import com.example.jobportal.exception.UserException;
-import com.example.jobportal.model.entity.*;
-import com.example.jobportal.model.enums.JobStatus;
-import com.example.jobportal.exception.JobException;
-import com.example.jobportal.model.enums.NotificationType;
-import com.example.jobportal.repository.*;
-import lombok.RequiredArgsConstructor;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import com.example.jobportal.dto.request.JobRequest;
+import com.example.jobportal.dto.response.JobBaseResponse;
+import com.example.jobportal.dto.response.JobBaseResponseV2;
+import com.example.jobportal.dto.response.JobDetailResponse;
+import com.example.jobportal.exception.JobException;
+import com.example.jobportal.exception.UserException;
+import com.example.jobportal.model.entity.Address;
+import com.example.jobportal.model.entity.Application;
+import com.example.jobportal.model.entity.Company;
+import com.example.jobportal.model.entity.Job;
+import com.example.jobportal.model.entity.JobCategory;
+import com.example.jobportal.model.entity.SavedJob;
+import com.example.jobportal.model.entity.User;
+import com.example.jobportal.model.enums.JobStatus;
+import com.example.jobportal.model.enums.NotificationType;
+import com.example.jobportal.repository.ApplicationRepository;
+import com.example.jobportal.repository.CompanyRepository;
+import com.example.jobportal.repository.JobCategoryRepository;
+import com.example.jobportal.repository.JobRepository;
+import com.example.jobportal.repository.SavedJobRepository;
+import com.example.jobportal.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -93,7 +106,7 @@ public class JobServiceImpl implements JobService {
         Job savedJob = jobRepository.save(job);
 
         notificationService.createNotificationForRole(
-                "ADMIN",
+                com.example.jobportal.constant.AppConstants.ROLE_ADMIN,
                 "Tin tuyển dụng mới được đăng",
                 "Công ty '" + existingCompany.getName() + "' vừa đăng việc: " + savedJob.getTitle(),
                 NotificationType.JOB_CREATED.name(),
@@ -128,7 +141,7 @@ public class JobServiceImpl implements JobService {
         Job updatedJob = jobRepository.save(existingJob);
 
         notificationService.createNotificationForRole(
-                "ADMIN",
+                com.example.jobportal.constant.AppConstants.ROLE_ADMIN,
                 "Tin tuyển dụng được cập nhật",
                 "Công ty '" + existingCompany.getName() + "' vừa cập nhật tin: " + updatedJob.getTitle(),
                 NotificationType.JOB_UPDATED.name(),

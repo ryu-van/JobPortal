@@ -128,7 +128,7 @@ class AuthServiceTest {
 
         Role role = new Role();
         role.setId(1L);
-        role.setName("USER");
+        role.setName("CANDIDATE");
 
         User savedUser = new User();
         savedUser.setId(1L);
@@ -206,6 +206,7 @@ class AuthServiceTest {
         invitation.setCompany(company);
 
         Role role = new Role();
+        role.setId(4L);
         role.setName("COMPANY_ADMIN");
 
         when(userRepository.existsByEmail("invited@example.com")).thenReturn(false);

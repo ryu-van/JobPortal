@@ -1,23 +1,26 @@
 package com.example.jobportal.service;
 
 import java.security.SecureRandom;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import com.example.jobportal.dto.response.*;
-import com.example.jobportal.model.enums.UploadType;
-import com.example.jobportal.utils.SecurityUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.example.jobportal.constant.AppConstants;
 import com.example.jobportal.dto.request.NewCompanyVerificationRequest;
 import com.example.jobportal.dto.request.UpdateCompanyRequest;
+import com.example.jobportal.dto.response.CompanyBaseResponse;
+import com.example.jobportal.dto.response.CompanyVerificationRequestDetailResponse;
+import com.example.jobportal.dto.response.CompanyVerificationRequestResponse;
+import com.example.jobportal.dto.response.InvitationResponse;
+import com.example.jobportal.dto.response.UploadResultResponse;
 import com.example.jobportal.exception.CompanyException;
 import com.example.jobportal.model.entity.Address;
 import com.example.jobportal.model.entity.AddressHelper;
@@ -27,14 +30,15 @@ import com.example.jobportal.model.entity.CompanyVerificationRequest;
 import com.example.jobportal.model.entity.User;
 import com.example.jobportal.model.enums.CompanyVerificationStatus;
 import com.example.jobportal.model.enums.NotificationType;
+import com.example.jobportal.model.enums.UploadType;
 import com.example.jobportal.repository.CompanyInvitationRepository;
 import com.example.jobportal.repository.CompanyRepository;
 import com.example.jobportal.repository.CompanyVerificationRequestRepository;
 import com.example.jobportal.repository.UserRepository;
+import com.example.jobportal.utils.SecurityUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -160,7 +164,7 @@ public class CompanyServiceImpl implements CompanyService {
         log.info("Successfully created company verification request with id: {}", savedRequest.getId());
 
         try {
-            notificationService.createNotificationForRole("ADMIN", "Yêu cầu xác minh công ty mới", sender.getFullName() + " vừa gửi yêu cầu xác minh công ty: " + savedRequest.getCompanyName(), NotificationType.COMPANY_VERIFY_REQUESTED.name(), savedRequest.getId(), "COMPANY_VERIFICATION_REQUEST");
+            notificationService.createNotificationForRole(AppConstants.ROLE_ADMIN, "Yêu cầu xác minh công ty mới", sender.getFullName() + " vừa gửi yêu cầu xác minh công ty: " + savedRequest.getCompanyName(), NotificationType.COMPANY_VERIFY_REQUESTED.name(), savedRequest.getId(), "COMPANY_VERIFICATION_REQUEST");
             log.debug("Notification sent to admins for verification request id: {}", savedRequest.getId());
         } catch (Exception e) {
             log.error("Failed to send notification for verification request id: {}", savedRequest.getId(), e);
