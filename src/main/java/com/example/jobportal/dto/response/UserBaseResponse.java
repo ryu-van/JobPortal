@@ -1,13 +1,14 @@
 package com.example.jobportal.dto.response;
 
 import com.example.jobportal.model.entity.User;
+import com.example.jobportal.model.enums.Gender;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 
 @SuperBuilder
@@ -20,12 +21,12 @@ public class UserBaseResponse {
     private String fullName;
     private String code;
     private String email;
-    private Boolean gender;
+    private Gender gender;
     private Long roleId;
     private String roleName;
-    private boolean isActive;
-    private boolean isEmailVerified;
-    private Date tokenExpiryDate;
+    private Boolean isActive;
+    private Boolean isEmailVerified;
+    private LocalDateTime tokenExpiryDate;
     private String phoneNumber;
     private String avatarUrl;
     public static UserBaseResponse fromEntity(User user) {

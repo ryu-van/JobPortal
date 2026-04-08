@@ -5,6 +5,7 @@ import com.example.jobportal.model.entity.Notification;
 import com.example.jobportal.model.entity.User;
 import com.example.jobportal.repository.NotificationRepository;
 import com.example.jobportal.repository.UserRepository;
+import com.example.jobportal.model.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public void createNotification(Long userId, String title, String message, String type, Long refId, String refType) {
+    public void createNotification(Long userId, String title, String message, NotificationType type, Long refId, String refType) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -32,14 +33,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public void createNotificationForRole(String roleName, String title, String message, String type, Long refId, String refType) {
+    public void createNotificationForRole(String roleName, String title, String message, NotificationType type, Long refId, String refType) {
         List<User> users = userRepository.findAllByRoleName(roleName);
         for (User user : users) {
             createNotification(title, message, type, refId, refType, user);
         }
     }
 
-    private void createNotification(String title, String message, String type, Long refId, String refType, User user) {
+    private void createNotification(String title, String message, NotificationType type, Long refId, String refType, User user) {
         Notification notification = Notification.builder()
                 .user(user)
                 .title(title)

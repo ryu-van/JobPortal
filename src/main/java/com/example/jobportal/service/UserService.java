@@ -15,6 +15,7 @@ import java.util.List;
 @Service
 public interface UserService {
 
+    UserBaseResponse createUser(CreateUserRequest createUserRequest, MultipartFile file);
     Page<UserBaseResponse> getUsersByRole(String role, String keyword, String companyName, Boolean isActive, Pageable pageable);
     List<UserBaseResponse> getHrUsersInCompany(String keyword, Boolean isActive, Long companyId,String asc);
     UserDetailResponse getUserById(Long id);

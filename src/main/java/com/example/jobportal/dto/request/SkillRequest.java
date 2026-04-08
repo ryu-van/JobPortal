@@ -1,5 +1,6 @@
 package com.example.jobportal.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Getter
@@ -8,8 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class SkillRequest {
-    private Long id;
-    private String skillName;
-    private String proficiencyLevel;
-    private Integer yearsOfExperience;
+    @NotBlank(message = "Tên kỹ năng không được để trống")
+    private String name;
+
 }

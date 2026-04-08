@@ -54,7 +54,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         ApplicationStatusHistory history = new ApplicationStatusHistory();
         history.setApplication(saved);
         history.setOldStatus(null);
-        history.setNewStatus(ApplicationStatus.PENDING.name());
+        history.setNewStatus(ApplicationStatus.PENDING.getValue());
         history.setNotes("Application created");
         history.setChangedBy(user);
         historyRepository.save(history);
@@ -63,7 +63,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 hr.getId(),
                 "Có ứng viên mới ứng tuyển",
                 user.getFullName() + " vừa ứng tuyển vào vị trí " + job.getTitle(),
-                NotificationType.APPLICATION_SUBMITTED.name(),
+                NotificationType.APPLICATION_SUBMITTED,
                 saved.getId(),
                 "APPLICATION"
         );
@@ -76,7 +76,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         Application app = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> ApplicationException.notFound("Application not found"));
 
-        ApplicationStatus status = ApplicationStatus.fromString(newStatus);
+        ApplicationStatus status = ApplicationStatus.fromValue(newStatus);
         ApplicationStatus oldStatus = app.getStatus();
         app.setStatus(status);
         app.setReviewedAt(LocalDateTime.now());
@@ -87,8 +87,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         ApplicationStatusHistory history = new ApplicationStatusHistory();
         history.setApplication(app);
-        history.setOldStatus(oldStatus.name());
-        history.setNewStatus(status.name());
+        history.setOldStatus(oldStatus.getValue());
+        history.setNewStatus(status.getValue());
         history.setNotes(notes);
         history.setChangedBy(app.getReviewedBy());
         historyRepository.save(history);
@@ -104,7 +104,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 app.getUser().getId(),
                 "Cập nhật trạng thái hồ sơ",
                 msg,
-                NotificationType.APPLICATION_STATUS_UPDATE.name(),
+                NotificationType.APPLICATION_STATUS_UPDATE,
                 app.getId(),
                 "APPLICATION"
         );

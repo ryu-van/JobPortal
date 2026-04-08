@@ -1,7 +1,6 @@
 package com.example.jobportal.dto.response;
 
 import com.example.jobportal.model.entity.Job;
-import com.example.jobportal.model.entity.JobCategory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -34,7 +33,8 @@ public class JobDetailResponse extends JobBaseResponse {
     private Integer applicationsCount;
     private LocalDateTime publishedAt;
     private LocalDateTime closedAt;
-    private Set<String> categories;
+    private Set<Long> categories;
+    private Set<Long> skillIds;
     private AddressResponse address;
     private Boolean applied;
     private LocalDateTime appliedAt;
@@ -46,6 +46,7 @@ public class JobDetailResponse extends JobBaseResponse {
                 .id(job.getId())
                 .title(job.getTitle())
                 .companyName(job.getCompany().getName())
+                .companyId(job.getCompany().getId())
                 .companyLogo(job.getCompany().getLogoUrl())
                 .address(AddressResponse.fromEntity(job.getAddress()))
                 .isSalaryNegotiable(job.getIsSalaryNegotiable())
@@ -56,19 +57,22 @@ public class JobDetailResponse extends JobBaseResponse {
                 .requirements(job.getRequirements())
                 .responsibilities(job.getResponsibilities())
                 .benefits(job.getBenefits())
-                .workType(job.getWorkType())
-                .employmentType(job.getEmploymentType())
-                .experienceLevel(job.getExperienceLevel())
+                .workType(job.getWorkType() != null ? job.getWorkType().getValue() : null)
+                .employmentType(job.getEmploymentType() != null ? job.getEmploymentType().getValue() : null)
+                .experienceLevel(job.getExperienceLevel() != null ? job.getExperienceLevel().getValue() : null)
                 .numberOfPositions(job.getNumberOfPositions())
                 .applicationDeadline(job.getApplicationDeadline())
-                .status(job.getStatus() != null ? job.getStatus().name() : null)
+                .status(job.getStatus() != null ? job.getStatus().getValue() : null)
                 .isFeatured(job.getIsFeatured())
                 .viewsCount(job.getViewsCount())
                 .applicationsCount(job.getApplicationsCount())
                 .publishedAt(job.getPublishedAt())
                 .closedAt(job.getClosedAt())
                 .categories(job.getCategories() != null
-                        ? job.getCategories().stream().map(JobCategory::getName).collect(Collectors.toSet())
+                        ? job.getCategories().stream().map(category -> category.getId()).collect(Collectors.toSet())
+                        : null)
+                .skillIds(job.getSkills() != null
+                        ? job.getSkills().stream().map(skill -> skill.getId()).collect(Collectors.toSet())
                         : null)
                 .applied(false)
                 .appliedAt(null)

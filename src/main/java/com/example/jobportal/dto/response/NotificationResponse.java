@@ -25,7 +25,7 @@ public class NotificationResponse {
                 .id(n.getId())
                 .title(n.getTitle())
                 .message(n.getMessage())
-                .type(n.getType())
+                .type(n.getType() != null ? n.getType().getValue() : null)
                 .referenceId(n.getReferenceId())
                 .referenceType(n.getReferenceType())
                 .isRead(n.getIsRead())

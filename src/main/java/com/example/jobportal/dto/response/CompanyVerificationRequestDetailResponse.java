@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,7 +31,7 @@ public class CompanyVerificationRequestDetailResponse {
 
     private String contactPhone;
 
-    private String documents;
+    private List<String> documents;
 
     private String requestedRole;
 
@@ -40,13 +41,11 @@ public class CompanyVerificationRequestDetailResponse {
 
     private LocalDateTime reviewedAt;
 
-    private String street;
-    private String ward;
-    private String district;
-    private String city;
-    private String country;
+    private List<AddressResponse> addresses;
 
     private String userName;
+
+    private String logoUrl;
 
     private String reviewedByName;
 
@@ -55,23 +54,27 @@ public class CompanyVerificationRequestDetailResponse {
     public static CompanyVerificationRequestDetailResponse fromEntity(CompanyVerificationRequest companyVerificationRequest){
         CompanyVerificationRequestDetailResponse companyVerificationRequestDetailResponse = new CompanyVerificationRequestDetailResponse();
         companyVerificationRequestDetailResponse.setId(companyVerificationRequest.getId());
-        companyVerificationRequestDetailResponse.setBusinessLicense(companyVerificationRequest.getBusinessLicense());
         companyVerificationRequestDetailResponse.setTaxCode(companyVerificationRequest.getTaxCode());
         companyVerificationRequestDetailResponse.setName(companyVerificationRequest.getCompanyName());
         companyVerificationRequestDetailResponse.setEmail(companyVerificationRequest. getContactEmail());
         companyVerificationRequestDetailResponse.setContactPerson(companyVerificationRequest.getContactPerson());
         companyVerificationRequestDetailResponse.setContactEmail(companyVerificationRequest.getContactEmail());
         companyVerificationRequestDetailResponse.setContactPhone(companyVerificationRequest.getContactPhone());
-        companyVerificationRequestDetailResponse.setDocuments(String.join(",", companyVerificationRequest.getDocumentUrls()));
-        companyVerificationRequestDetailResponse.setStatus(companyVerificationRequest.getStatus().toString());
+        companyVerificationRequestDetailResponse.setDocuments(companyVerificationRequest.getDocumentUrls());
+        companyVerificationRequestDetailResponse.setStatus(companyVerificationRequest.getStatus() != null ? companyVerificationRequest.getStatus().getValue() : null);
         companyVerificationRequestDetailResponse.setAdminNotes(companyVerificationRequest.getAdminNotes());
         companyVerificationRequestDetailResponse.setReviewedAt(companyVerificationRequest.getReviewedAt());
-        companyVerificationRequestDetailResponse.setStreet(companyVerificationRequest.getAddress() != null ? companyVerificationRequest.getAddress().getDetailAddress() : null);
-        companyVerificationRequestDetailResponse.setWard(companyVerificationRequest.getAddress() != null ? companyVerificationRequest.getAddress().getCommuneName() : null);
-        companyVerificationRequestDetailResponse.setCity(companyVerificationRequest.getAddress() != null ? companyVerificationRequest.getAddress().getProvinceName() : null);
-        companyVerificationRequestDetailResponse.setUserName(companyVerificationRequest.getUser().getFullName());
-        companyVerificationRequestDetailResponse.setReviewedByName(companyVerificationRequest.getReviewedBy().getFullName());
-        companyVerificationRequestDetailResponse.setReviewedByEmail(companyVerificationRequest.getReviewedBy().getEmail());
+        companyVerificationRequestDetailResponse.setAddresses(
+                companyVerificationRequest.getAddresses() != null
+                        ? companyVerificationRequest.getAddresses().stream()
+                        .map(AddressResponse::fromEntity)
+                        .toList()
+                        : List.of()
+        );
+        companyVerificationRequestDetailResponse.setUserName(companyVerificationRequest.getUser() != null ? companyVerificationRequest.getUser().getFullName() : null);
+        companyVerificationRequestDetailResponse.setLogoUrl(companyVerificationRequest.getLogoUrl());
+        companyVerificationRequestDetailResponse.setReviewedByName(companyVerificationRequest.getReviewedBy() != null ? companyVerificationRequest.getReviewedBy().getFullName() : null);
+        companyVerificationRequestDetailResponse.setReviewedByEmail(companyVerificationRequest.getReviewedBy() != null ? companyVerificationRequest.getReviewedBy().getEmail() : null);
         return companyVerificationRequestDetailResponse;
     }
 

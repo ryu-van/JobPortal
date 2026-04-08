@@ -36,6 +36,8 @@ public class SecurityConfig {
         String authPath       = apiPrefix + "/auth/**";
         String userPath       = apiPrefix + "/users/**";
         String jobPath        = apiPrefix + "/jobs/**";
+        String categoryPath   = apiPrefix + "/categories/**";
+        String companyPath    = apiPrefix + "/companies/**";
 
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -50,6 +52,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(authPath).permitAll()
+                        .requestMatchers(HttpMethod.GET, jobPath).permitAll()
+                        .requestMatchers(HttpMethod.GET, categoryPath).permitAll()
+                        .requestMatchers(HttpMethod.GET, companyPath).permitAll()
                         .requestMatchers(userPath).hasAnyRole(AppConstants.ROLE_CANDIDATE, AppConstants.ROLE_HR, AppConstants.ROLE_ADMIN, AppConstants.ROLE_COMPANY_ADMIN)
                         .requestMatchers(jobPath).hasAnyRole(AppConstants.ROLE_CANDIDATE, AppConstants.ROLE_HR, AppConstants.ROLE_ADMIN, AppConstants.ROLE_COMPANY_ADMIN)
                         .anyRequest().authenticated()

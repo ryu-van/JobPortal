@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateInvitationRequest {
 
+    private Long createdById;
+
     @Email(message = "Email không hợp lệ")
     private String email;
 

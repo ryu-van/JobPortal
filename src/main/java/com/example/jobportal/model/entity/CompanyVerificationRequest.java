@@ -2,13 +2,11 @@ package com.example.jobportal.model.entity;
 
 import com.example.jobportal.converter.CompanyVerificationStatusConverter;
 import com.example.jobportal.model.enums.CompanyVerificationStatus;
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
-import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -29,13 +27,12 @@ public class CompanyVerificationRequest extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Giấy phép kinh doanh không được để trống")
-    private String businessLicense;
-
     @NotBlank(message = "Mã số thuế không được để trống")
     @Column(nullable = false, unique = true)
-    @Pattern(regexp = "^[0-9]{10}(-[0-9]{3})?$",
-            message = "Mã số thuế không hợp lệ")
+    @Pattern(
+            regexp = "^[0-9]{6}-[0-9]{3}([0-9])?$",
+            message = "Mã số thuế phải đúng định dạng XXXXXX-XXX hoặc XXXXXX-XXXX"
+    )
     private String taxCode;
 
     @Column(unique = true)
@@ -48,11 +45,17 @@ public class CompanyVerificationRequest extends BaseEntity {
 
     private String contactPhone;
 
-    @Type(JsonBinaryType.class)
-    @Column(name = "document_files", columnDefinition = "jsonb")
-    @Builder.Default
-    private List<DocumentFile> documentFiles = new ArrayList<>();
+    private String website;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "industry_id")
+    private Industry industry;
+
+    private String logoUrl;
+
+    private String logoPublicId;
+
+    @Column(nullable = false)
     @Convert(converter = CompanyVerificationStatusConverter.class)
     private CompanyVerificationStatus status = CompanyVerificationStatus.PENDING;
 
@@ -63,9 +66,19 @@ public class CompanyVerificationRequest extends BaseEntity {
 
     private LocalDateTime reviewedAt;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    private String description;
+
+    private String companySize;
+
+    private LocalDateTime establishmentDate;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "verification_address_id")
-    private Address address;
+    private Set<Address> addresses = new HashSet<>();
+
+    @OneToMany(mappedBy = "verificationRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<CompanyVerificationDocument> documents = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -79,42 +92,30 @@ public class CompanyVerificationRequest extends BaseEntity {
     @JoinColumn(name = "reviewed_by")
     private User reviewedBy;
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class DocumentFile {
-        private String fileName;
-        private String url;
-        private String publicId;
-        private String contentType;
-        private Long fileSize;
-        private LocalDateTime uploadedAt;
-    }
-
-    public void addDocumentFile(DocumentFile documentFile) {
-        if (this.documentFiles == null) {
-            this.documentFiles = new ArrayList<>();
+    public void addDocument(CompanyVerificationDocument document) {
+        if (this.documents == null) {
+            this.documents = new ArrayList<>();
         }
-        this.documentFiles.add(documentFile);
+        document.setVerificationRequest(this);
+        this.documents.add(document);
     }
 
-    public void removeDocumentFile(String publicId) {
-        if (this.documentFiles != null) {
-            this.documentFiles.removeIf(doc -> doc.getPublicId().equals(publicId));
+    public void removeDocument(String publicId) {
+        if (this.documents != null) {
+            this.documents.removeIf(doc -> publicId.equals(doc.getPublicId()));
         }
     }
 
-    public void clearDocumentFiles() {
-        if (this.documentFiles != null) {
-            this.documentFiles.clear();
+    public void clearDocuments() {
+        if (this.documents != null) {
+            this.documents.clear();
         }
     }
 
     @Transient
     public List<String> getDocumentUrls() {
-        return documentFiles != null ?
-                documentFiles.stream().map(DocumentFile::getUrl).toList() :
-                new ArrayList<>();
+        return documents != null
+                ? documents.stream().map(CompanyVerificationDocument::getFileUrl).toList()
+                : new ArrayList<>();
     }
 }

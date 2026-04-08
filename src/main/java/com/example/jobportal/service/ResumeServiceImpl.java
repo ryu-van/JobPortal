@@ -1,9 +1,14 @@
 package com.example.jobportal.service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import org.springframework.stereotype.Service;
+
 import com.example.jobportal.dto.request.EducationRequest;
 import com.example.jobportal.dto.request.ExperienceRequest;
 import com.example.jobportal.dto.request.ResumeRequest;
-import com.example.jobportal.dto.request.SkillRequest;
 import com.example.jobportal.dto.response.ResumeBaseResponse;
 import com.example.jobportal.dto.response.ResumeDetailResponse;
 import com.example.jobportal.exception.ResumeException;
@@ -12,12 +17,13 @@ import com.example.jobportal.model.entity.Resume;
 import com.example.jobportal.model.entity.ResumeEducation;
 import com.example.jobportal.model.entity.ResumeExperience;
 import com.example.jobportal.model.entity.ResumeSkill;
-import com.example.jobportal.repository.*;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import com.example.jobportal.repository.ResumeEducationRepository;
+import com.example.jobportal.repository.ResumeExperienceRepository;
+import com.example.jobportal.repository.ResumeRepository;
+import com.example.jobportal.repository.ResumeSkillRepository;
+import com.example.jobportal.repository.UserRepository;
 
-import java.util.List;
-import java.util.Objects;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Service
@@ -43,6 +49,10 @@ public class ResumeServiceImpl implements ResumeService{
                 .isPublic(resumeRequest.getIsPublic())
                 .user(user)
                 .build();
+
+        if (resume.getEducations() == null) resume.setEducations(new ArrayList<>());
+        if (resume.getExperiences() == null) resume.setExperiences(new ArrayList<>());
+        if (resume.getSkills() == null) resume.setSkills(new ArrayList<>());
 
         if (resumeRequest.getEducations() != null) {
             for (var eduReq : resumeRequest.getEducations()) {
@@ -80,9 +90,7 @@ public class ResumeServiceImpl implements ResumeService{
         if (resumeRequest.getSkills() != null) {
             for (var skillReq : resumeRequest.getSkills()) {
                 ResumeSkill skill = ResumeSkill.builder()
-                        .skillName(skillReq.getSkillName())
-                        .proficiencyLevel(skillReq.getProficiencyLevel())
-                        .yearsOfExperience(skillReq.getYearsOfExperience())
+                        .skillName(skillReq.getName())
                         .resume(resume)
                         .build();
                 resume.getSkills().add(skill);
@@ -104,9 +112,9 @@ public class ResumeServiceImpl implements ResumeService{
         resume.setIsPrimary(request.getIsPrimary());
         resume.setIsPublic(request.getIsPublic());
 
-        resume.getEducations().clear();
-        resume.getExperiences().clear();
-        resume.getSkills().clear();
+        if (resume.getEducations() == null) resume.setEducations(new ArrayList<>()); else resume.getEducations().clear();
+        if (resume.getExperiences() == null) resume.setExperiences(new ArrayList<>()); else resume.getExperiences().clear();
+        if (resume.getSkills() == null) resume.setSkills(new ArrayList<>()); else resume.getSkills().clear();
 
         if (request.getEducations() != null) {
             boolean hasIds = request.getEducations().stream().anyMatch(e -> e.getId() != null);
@@ -220,48 +228,7 @@ public class ResumeServiceImpl implements ResumeService{
             }
         }
 
-        if (request.getSkills() != null) {
-            boolean hasIds = request.getSkills().stream().anyMatch(s -> s.getId() != null);
-
-            if (!hasIds) {
-                resume.getSkills().clear();
-                request.getSkills().forEach(s ->
-                        resume.getSkills().add(ResumeSkill.builder()
-                                .skillName(s.getSkillName())
-                                .proficiencyLevel(s.getProficiencyLevel())
-                                .yearsOfExperience(s.getYearsOfExperience())
-                                .resume(resume)
-                                .build()));
-            } else {
-                List<Long> incomingIds = request.getSkills().stream()
-                        .map(SkillRequest::getId)
-                        .filter(Objects::nonNull)
-                        .toList();
-
-                resume.getSkills().removeIf(s -> !incomingIds.contains(s.getId()));
-
-                for (SkillRequest s : request.getSkills()) {
-                    if (s.getId() != null) {
-                        ResumeSkill old = resume.getSkills().stream()
-                                .filter(sk -> sk.getId().equals(s.getId()))
-                                .findFirst().orElse(null);
-                        if (old != null) {
-                            old.setSkillName(s.getSkillName());
-                            old.setProficiencyLevel(s.getProficiencyLevel());
-                            old.setYearsOfExperience(s.getYearsOfExperience());
-                        }
-                    } else {
-                        resume.getSkills().add(ResumeSkill.builder()
-                                .skillName(s.getSkillName())
-                                .proficiencyLevel(s.getProficiencyLevel())
-                                .yearsOfExperience(s.getYearsOfExperience())
-                                .resume(resume)
-                                .build());
-                    }
-                }
-            }
-        }
-
+        
 
         Resume updated = resumeRepository.save(resume);
 
