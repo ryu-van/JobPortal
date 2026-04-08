@@ -12,9 +12,11 @@ import java.time.LocalDate;
 public class CreateUserRequest {
     private String fullName;
     private String email;
+    private String gender;
     private String password;
     private LocalDate dateOfBirth;
     private AddressRequest addressRequest;
     private String phoneNumber;
     private Boolean isEmailVerified = false;
+    private Long roleId;
 }

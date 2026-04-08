@@ -6,6 +6,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -15,9 +19,13 @@ public class UpdateCompanyRequest {
 
     private String email;
 
+    private String taxCode;
+
+    private LocalDate establishmentDate;
+
     private String description;
 
-    private String industry;
+    private Long industryId;
 
     private String companySize;
 
@@ -25,7 +33,7 @@ public class UpdateCompanyRequest {
 
     private String logoUrl;
 
-    private AddressRequest addressRequest;
+    private List<AddressRequest> addressRequest;
 
     private Boolean isVerified = false;
 

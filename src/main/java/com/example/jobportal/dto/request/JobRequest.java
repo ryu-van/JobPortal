@@ -1,5 +1,8 @@
 package com.example.jobportal.dto.request;
 
+import com.example.jobportal.model.enums.EmploymentType;
+import com.example.jobportal.model.enums.ExperienceLevel;
+import com.example.jobportal.model.enums.WorkType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -30,20 +33,11 @@ public class JobRequest {
     @NotBlank(message = "Benefits are required")
     private String benefits;
 
-    private String street;
-    private String ward;
-    private String district;
-    private String city;
-    private String country;
+    private AddressRequest addressRequest;
 
-    @Pattern(regexp = "REMOTE|ONSITE|HYBRID", message = "Invalid work type")
-    private String workType;
-
-    @Pattern(regexp = "FULL_TIME|PART_TIME|CONTRACT|INTERNSHIP|FREELANCE", message = "Invalid employment type")
-    private String employmentType;
-
-    @Pattern(regexp = "ENTRY|JUNIOR|MIDDLE|SENIOR|LEAD|MANAGER", message = "Invalid experience level")
-    private String experienceLevel;
+    private WorkType workType;
+    private EmploymentType employmentType;
+    private ExperienceLevel experienceLevel;
 
     private Boolean isSalaryNegotiable = false;
 
@@ -56,7 +50,7 @@ public class JobRequest {
     @Pattern(regexp = "VND|USD|EUR", message = "Invalid currency")
     private String salaryCurrency = "VND";
 
-    private String skills;
+    private Set<Long> skillIds;
 
     @Min(value = 1, message = "Must have at least 1 position")
     @Max(value = 100, message = "Cannot exceed 100 positions")
@@ -69,12 +63,14 @@ public class JobRequest {
     @Pattern(regexp = "DRAFT|PUBLISHED|CLOSED|ARCHIVED", message = "Invalid status")
     private String status = "DRAFT";
 
+    private Boolean isFeatured = false;
 
     @NotNull(message = "Company ID is required")
     private Long companyId;
 
     @NotEmpty(message = "At least one category is required")
     private Set<Long> categoryIds;
+    
 
     @AssertTrue(message = "Salary max must be greater than salary min")
     public boolean isSalaryRangeValid() {

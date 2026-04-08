@@ -16,13 +16,9 @@ public class UpdateUserRequest {
     private LocalDate dateOfBirth;
     private String fullName;
     private String phoneNumber;
-    private String street;
-    private String ward;
-    private String district;
-    private String city;
-    private String country;
-    private Boolean gender;
-    private Long CompanyId;
+    private AddressRequest addressRequest;
+    private String gender;
+    private Long companyId;
     private Long roleId;
     private Boolean isActive;
 
