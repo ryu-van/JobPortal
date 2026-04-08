@@ -17,34 +17,40 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     @Query("""
-    SELECT new com.example.jobportal.dto.response.UserBaseResponse(
-        u.id,
-        u.fullName,
-        u.code,
-        u.email,
-        u.gender,
-        u.role.id,
-        u.role.name,
-        u.isActive,
-        u.isEmailVerified,
-        u.tokenExpiryDate,
-        u.phoneNumber,
-        u.avatarUrl
-    )
-    FROM User u
-    WHERE (:roleId IS NULL OR u.role.id = :roleId)
-      AND (
-          :keyword IS NULL
-          OR LOWER(u.fullName) LIKE :keyword
-          OR LOWER(u.code) LIKE :keyword
-          OR LOWER(u.email) LIKE :keyword
-      )
-      AND (:isActive IS NULL OR u.isActive = :isActive)
-""")
+        SELECT new com.example.jobportal.dto.response.UserBaseResponse(
+            u.id,
+            u.fullName,
+            u.code,
+            u.email,
+            u.gender,
+            u.role.id,
+            u.role.name,
+            u.isActive,
+            u.isEmailVerified,
+            u.tokenExpiryDate,
+            u.phoneNumber,
+            u.avatarUrl
+        )
+        FROM User u
+        LEFT JOIN u.company c
+        WHERE (:roleId IS NULL OR u.role.id = :roleId)
+          AND (
+              :keyword IS NULL
+              OR LOWER(u.fullName) LIKE :keyword
+              OR LOWER(u.code) LIKE :keyword
+              OR LOWER(u.email) LIKE :keyword
+          )
+          AND (:isActive IS NULL OR u.isActive = :isActive)
+          AND (
+              :companyName IS NULL
+              OR LOWER(c.name) LIKE :companyName
+          )
+        """)
     Page<UserBaseResponse> getUsersByRole(
-            Long roleId,
-            String keyword,
-            Boolean isActive,
+            @org.springframework.data.repository.query.Param("roleId") Long roleId,
+            @org.springframework.data.repository.query.Param("keyword") String keyword,
+            @org.springframework.data.repository.query.Param("companyName") String companyName,
+            @org.springframework.data.repository.query.Param("isActive") Boolean isActive,
             Pageable pageable
     );
 
@@ -61,32 +67,34 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByCode(String code);
 
     @Query("""
-                SELECT new com.example.jobportal.dto.response.UserBaseResponse(
-                    u.id,
-                    u.fullName,
-                    u.code,
-                    u.email,
-                    u.gender,
-                    u.role.id,
-                    u.role.name,
-                    u.isActive,
-                    u.isEmailVerified,
-                    u.tokenExpiryDate,
-                    u.phoneNumber,
-                    u.avatarUrl
-                )
-                FROM User u
-                WHERE u.company.id = :companyId
-                  AND (:keyword IS NULL OR
-                       LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                       OR LOWER(u.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                       OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                  )
-                  AND (:isActive IS NULL OR u.isActive = :isActive)
-                ORDER BY 
-                    CASE WHEN :asc = 'asc' THEN u.fullName END ASC,
-                    CASE WHEN :asc = 'desc' THEN u.fullName END DESC
-            """)
+    SELECT new com.example.jobportal.dto.response.UserBaseResponse(
+        u.id,
+        u.fullName,
+        u.code,
+        u.email,
+        u.gender,
+        u.role.id,
+        u.role.name,
+        u.isActive,
+        u.isEmailVerified,
+        u.tokenExpiryDate,
+        u.phoneNumber,
+        u.avatarUrl
+    )
+    FROM User u
+    WHERE u.company.id = :companyId
+      AND u.role.name = 'HR'
+      AND (
+           :keyword IS NULL
+           OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+           OR LOWER(u.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
+           OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+      )
+      AND (:isActive IS NULL OR u.isActive = :isActive)
+    ORDER BY
+        CASE WHEN :asc = 'asc' THEN u.fullName END ASC,
+        CASE WHEN :asc = 'desc' THEN u.fullName END DESC
+""")
     List<UserBaseResponse> getUserInCompany(
             String keyword,
             Boolean isActive,
