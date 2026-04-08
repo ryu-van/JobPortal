@@ -2,19 +2,34 @@ package com.example.jobportal.model.enums;
 
 
 
-public enum ApplicationStatus {
-    PENDING,       // Ứng viên mới nộp
-    REVIEWED,      // Nhà tuyển dụng đã xem
-    ACCEPTED,      // Được chấp nhận (qua vòng đầu, phỏng vấn)
-    REJECTED,      // Bị từ chối
-    HIRED,         // Đã được nhận
-    WITHDRAWN;     // Ứng viên rút hồ sơ
+import com.fasterxml.jackson.annotation.JsonValue;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-    public static ApplicationStatus fromString(String value) {
-        try {
-            return ApplicationStatus.valueOf(value.toUpperCase());
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid application status: " + value);
+@Getter
+@RequiredArgsConstructor
+public enum ApplicationStatus {
+    PENDING("pending", "Đang chờ duyệt"),
+    REVIEWED("reviewed", "Đã xem"),
+    ACCEPTED("accepted", "Chấp nhận"),
+    REJECTED("rejected", "Từ chối"),
+    HIRED("hired", "Đã tuyển"),
+    WITHDRAWN("withdrawn", "Đã rút đơn");
+
+    private final String value;
+    private final String displayName;
+
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
+
+    public static ApplicationStatus fromValue(String value) {
+        for (ApplicationStatus status : ApplicationStatus.values()) {
+            if (status.value.equalsIgnoreCase(value)) {
+                return status;
+            }
         }
+        throw new IllegalArgumentException("Invalid application status: " + value);
     }
 }
