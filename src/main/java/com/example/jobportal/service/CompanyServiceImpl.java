@@ -1,12 +1,17 @@
 package com.example.jobportal.service;
 
 import java.security.SecureRandom;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
+import com.example.jobportal.dto.request.AddressRequest;
+import com.example.jobportal.dto.response.*;
+import com.example.jobportal.model.entity.*;
+import com.example.jobportal.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,25 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.jobportal.constant.AppConstants;
 import com.example.jobportal.dto.request.NewCompanyVerificationRequest;
 import com.example.jobportal.dto.request.UpdateCompanyRequest;
-import com.example.jobportal.dto.response.CompanyBaseResponse;
-import com.example.jobportal.dto.response.CompanyVerificationRequestDetailResponse;
-import com.example.jobportal.dto.response.CompanyVerificationRequestResponse;
-import com.example.jobportal.dto.response.InvitationResponse;
-import com.example.jobportal.dto.response.UploadResultResponse;
 import com.example.jobportal.exception.CompanyException;
-import com.example.jobportal.model.entity.Address;
-import com.example.jobportal.model.entity.AddressHelper;
-import com.example.jobportal.model.entity.Company;
-import com.example.jobportal.model.entity.CompanyInvitation;
-import com.example.jobportal.model.entity.CompanyVerificationRequest;
-import com.example.jobportal.model.entity.User;
 import com.example.jobportal.model.enums.CompanyVerificationStatus;
 import com.example.jobportal.model.enums.NotificationType;
 import com.example.jobportal.model.enums.UploadType;
-import com.example.jobportal.repository.CompanyInvitationRepository;
-import com.example.jobportal.repository.CompanyRepository;
-import com.example.jobportal.repository.CompanyVerificationRequestRepository;
-import com.example.jobportal.repository.UserRepository;
 import com.example.jobportal.utils.SecurityUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -49,22 +39,28 @@ public class CompanyServiceImpl implements CompanyService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final CompanyInvitationRepository invitationRepository;
+    private final IndustryRepository industryRepository;
     private static final String INVITATION_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int INVITATION_CODE_LENGTH = 8;
     private final AddressHelper addressHelper;
     private final FileUploadService fileUploadService;
+    private final JobRepository jobRepository;
 
     @Override
-    public Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(String keyword, String verifyStatus, Date createdDate, Pageable pageable) {
+    public Page<CompanyVerificationRequestResponse> getAllCompanyVerificationRequest(String keyword, String verifyStatus, LocalDate createdDate, Pageable pageable) {
         CompanyVerificationStatus status = null;
         if (verifyStatus != null && !verifyStatus.equalsIgnoreCase("ALL")) {
             try {
-                status = CompanyVerificationStatus.valueOf(verifyStatus.toUpperCase());
+                status = CompanyVerificationStatus.valueOf(verifyStatus);
             } catch (IllegalArgumentException e) {
                 throw CompanyException.badRequest("Invalid verification status: " + verifyStatus);
             }
         }
-        return companyVerificationRequestRepository.getAllCompanyVerificationRequest(keyword, status, createdDate, pageable);
+        String keywordPattern = (keyword == null || keyword.isBlank())
+                ? null
+                : "%" + keyword.toLowerCase() + "%";
+        LocalDateTime createdAtStart = createdDate != null ? createdDate.atStartOfDay() : null;
+        return companyVerificationRequestRepository.getAllCompanyVerificationRequest(keywordPattern, status, createdAtStart, pageable);
     }
 
     @Override
@@ -86,14 +82,38 @@ public class CompanyServiceImpl implements CompanyService {
         if (request.getDescription() != null) company.setDescription(request.getDescription());
         if (request.getWebsite() != null) company.setWebsite(request.getWebsite());
         if (request.getLogoUrl() != null) company.setLogoUrl(request.getLogoUrl());
+        if (request.getIndustryId() != null) {
+            company.setIndustry(industryRepository.findById(request.getIndustryId()).orElseThrow(() -> CompanyException.notFound("Industry not found")));
+        }
+        if (request.getCompanySize() != null) company.setCompanySize(request.getCompanySize());
+        if (request.getEstablishmentDate() != null){
+            company.setEstablishmentDate(request.getEstablishmentDate().atStartOfDay());
+        }
+        if (request.getTaxCode() != null) company.setTaxCode(request.getTaxCode());
         if (request.getAddressRequest() != null) {
-            Address primary = company.getAddresses().stream().filter(a -> Boolean.TRUE.equals(a.getIsPrimary())).findFirst().orElse(null);
+            long primaryCount = request.getAddressRequest().stream()
+                    .filter(a -> Boolean.TRUE.equals(a.getIsPrimary()))
+                    .count();
 
-            if (primary == null) {
-                Address newAddress = addressHelper.build(request.getAddressRequest());
+            if (primaryCount > 1) {
+                throw CompanyException.badRequest("Chỉ được có một địa chỉ chính");
+            }
+
+            // First unset all existing primary flags to avoid the partial unique index
+            // violation that occurs when DELETE and INSERT happen in the same flush
+            company.getAddresses().forEach(a -> a.setIsPrimary(false));
+
+            // Remove addresses that are no longer in the request
+            company.getAddresses().clear();
+
+            // Flush the deletes before inserting new rows so the partial unique index
+            // (company_id) WHERE is_primary = true never sees two primary rows at once
+            companyRepository.saveAndFlush(company);
+
+            for (AddressRequest addressRequest : request.getAddressRequest()) {
+                Address newAddress = addressHelper.build(addressRequest);
+                newAddress.setCompany(company);
                 company.getAddresses().add(newAddress);
-            } else {
-                addressHelper.update(primary, request.getAddressRequest());
             }
         }
 
@@ -103,14 +123,14 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional(readOnly = true)
-    public CompanyBaseResponse getCompanyById(Long companyId) {
+    public CompanyDetailResponse getDeatailCompanyById(Long companyId) {
         Company company = companyRepository.findById(companyId).orElseThrow(() -> CompanyException.notFound("Company not found with id: " + companyId));
-        return CompanyBaseResponse.fromEntity(company);
+        return CompanyDetailResponse.fromEntity(company);
     }
 
     @Override
     @Transactional
-    public CompanyVerificationRequestResponse createCompanyVerificationRequest(NewCompanyVerificationRequest request, List<MultipartFile> documents) {
+    public CompanyVerificationRequestResponse createCompanyVerificationRequest(NewCompanyVerificationRequest request, List<MultipartFile> documents, MultipartFile logo) {
 
         validateCompanyVerificationRequest(request);
 
@@ -127,21 +147,69 @@ public class CompanyServiceImpl implements CompanyService {
             throw new IllegalArgumentException("Maximum 10 documents.");
         }
 
-        if (companyVerificationRequestRepository.existsByUserAndStatus(sender, CompanyVerificationStatus.PENDING)) {
+        boolean isAdmin = sender.getRole().getName().equalsIgnoreCase("ADMIN");
+
+        if (!isAdmin && companyVerificationRequestRepository.existsByUserAndStatus(sender, CompanyVerificationStatus.PENDING)) {
             throw CompanyException.badRequest("User already has a pending verification request");
         }
 
-        Address address = addressHelper.build(request.getAddressRequest());
+        List<Address> addresses = new ArrayList<>();
 
-        CompanyVerificationRequest verificationRequest = CompanyVerificationRequest.builder().companyName(request.getCompanyName()).businessLicense(request.getBusinessLicense()).taxCode(request.getTaxCode()).contactPerson(request.getContactPerson()).contactEmail(request.getContactEmail()).contactPhone(request.getContactPhone()).address(address).user(sender).status(CompanyVerificationStatus.PENDING).documentFiles(new ArrayList<>()).build();
+        if (request.getAddressRequest() != null) {
+            for (AddressRequest ar : request.getAddressRequest()) {
+                Address addr = addressHelper.build(ar);
+                addresses.add(addr);
+            }
+        }
+        Industry industry = null;
+        if (request.getIndustryId() != null) {
+            industry = industryRepository.findById(request.getIndustryId()).orElse(null);
+        }
+
+        CompanyVerificationRequest verificationRequest = CompanyVerificationRequest.builder()
+                .companyName(request.getCompanyName())
+                .taxCode(request.getTaxCode())
+                .contactPerson(request.getContactPerson())
+                .contactEmail(request.getContactEmail())
+                .contactPhone(request.getContactPhone())
+                .website(request.getWebsite())
+                .industry(industry)
+                .description(request.getDescription())
+                .companySize(request.getCompanySize())
+                .establishmentDate(request.getEstablishmentDate())
+                .user(sender)
+                .status(isAdmin ? CompanyVerificationStatus.APPROVED : CompanyVerificationStatus.PENDING)
+                .build();
+
+        if (addresses != null && !addresses.isEmpty()) {
+            verificationRequest.setAddresses(new java.util.HashSet<>(addresses));
+        }
+
+        if (isAdmin) {
+            verificationRequest.setReviewedBy(sender);
+            verificationRequest.setReviewedAt(LocalDateTime.now());
+        }
+
+        if (logo != null && !logo.isEmpty()) {
+            UploadResultResponse logoResult = fileUploadService.uploadSingle(logo, UploadType.IMAGES);
+            if ("SUCCESS".equals(logoResult.getStatus())) {
+                verificationRequest.setLogoUrl(logoResult.getUrl());
+                verificationRequest.setLogoPublicId(logoResult.getPublicId());
+            }
+        }
 
         List<UploadResultResponse> uploadResults = fileUploadService.uploadFiles(documents, UploadType.DOCUMENTS);
-        List<CompanyVerificationRequest.DocumentFile> documentFiles = new ArrayList<>();
+        List<CompanyVerificationDocument> documentFiles = new ArrayList<>();
         List<String> failedFiles = new ArrayList<>();
 
         for (UploadResultResponse result : uploadResults) {
             if ("SUCCESS".equals(result.getStatus())) {
-                documentFiles.add(CompanyVerificationRequest.DocumentFile.builder().fileName(result.getOriginalFilename()).url(result.getUrl()).publicId(result.getPublicId()).build());
+                documentFiles.add(CompanyVerificationDocument.builder()
+                        .fileUrl(result.getUrl())
+                        .publicId(result.getPublicId())
+                        .fileType(result.getOriginalFilename())
+                        .verificationRequest(verificationRequest)
+                        .build());
             } else {
                 failedFiles.add(result.getOriginalFilename());
             }
@@ -159,15 +227,57 @@ public class CompanyServiceImpl implements CompanyService {
 
             throw new RuntimeException(String.format("Failed to upload required documents. Success: %d/%d. Failed files: %s", documentFiles.size(), documents.size(), String.join(", ", failedFiles)));
         }
-        verificationRequest.setDocumentFiles(documentFiles);
+        verificationRequest.setDocuments(documentFiles);
         CompanyVerificationRequest savedRequest = companyVerificationRequestRepository.save(verificationRequest);
         log.info("Successfully created company verification request with id: {}", savedRequest.getId());
 
-        try {
-            notificationService.createNotificationForRole(AppConstants.ROLE_ADMIN, "Yêu cầu xác minh công ty mới", sender.getFullName() + " vừa gửi yêu cầu xác minh công ty: " + savedRequest.getCompanyName(), NotificationType.COMPANY_VERIFY_REQUESTED.name(), savedRequest.getId(), "COMPANY_VERIFICATION_REQUEST");
-            log.debug("Notification sent to admins for verification request id: {}", savedRequest.getId());
-        } catch (Exception e) {
-            log.error("Failed to send notification for verification request id: {}", savedRequest.getId(), e);
+        if (isAdmin) {
+            Company newCompany = Company.builder()
+                    .name(savedRequest.getCompanyName())
+                    .email(savedRequest.getContactEmail())
+                    .phoneNumber(savedRequest.getContactPhone())
+                    .logoUrl(savedRequest.getLogoUrl())
+                    .logoPublicId(savedRequest.getLogoPublicId())
+                    .taxCode(savedRequest.getTaxCode())
+                    .industry(savedRequest.getIndustry())
+                    .website(savedRequest.getWebsite())
+                    .companySize(savedRequest.getCompanySize())
+                    .description(savedRequest.getDescription())
+                    .establishmentDate(savedRequest.getEstablishmentDate())
+                    .isVerified(true)
+                    .isActive(true)
+                    .build();
+
+            Company savedCompany = companyRepository.save(newCompany);
+            log.info("Created new company with id: {} for admin request", savedCompany.getId());
+
+            if (addresses != null) {
+                for (Address src : addresses) {
+                    // Copy data into a new Address row — never reuse the same entity
+                    // that was added to the verificationRequest's addresses collection.
+                    Address copy = new Address();
+                    copy.setAddressType(src.getAddressType());
+                    copy.setProvinceCode(src.getProvinceCode());
+                    copy.setProvinceName(src.getProvinceName());
+                    copy.setCommuneCode(src.getCommuneCode());
+                    copy.setCommuneName(src.getCommuneName());
+                    copy.setDetailAddress(src.getDetailAddress());
+                    copy.setIsPrimary(src.getIsPrimary());
+                    copy.setIsActive(src.getIsActive());
+                    copy.setCompany(savedCompany);
+                    savedCompany.getAddresses().add(copy);
+                }
+            }
+
+            savedRequest.setCompany(savedCompany);
+            companyVerificationRequestRepository.save(savedRequest);
+        } else {
+            try {
+                notificationService.createNotificationForRole(AppConstants.ROLE_ADMIN, "Yêu cầu xác minh công ty mới", sender.getFullName() + " vừa gửi yêu cầu xác minh công ty: " + savedRequest.getCompanyName(), NotificationType.COMPANY_VERIFY_REQUESTED, savedRequest.getId(), "COMPANY_VERIFICATION_REQUEST");
+                log.debug("Notification sent to admins for verification request id: {}", savedRequest.getId());
+            } catch (Exception e) {
+                log.error("Failed to send notification for verification request id: {}", savedRequest.getId(), e);
+            }
         }
 
         return CompanyVerificationRequestResponse.fromEntity(savedRequest);
@@ -199,7 +309,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    public CompanyBaseResponse updateCompanyVerificationRequest(Long requestId, NewCompanyVerificationRequest request, List<MultipartFile> newDocuments) {
+    public CompanyVerificationRequestResponse updateCompanyVerificationRequest(Long requestId, NewCompanyVerificationRequest request, List<MultipartFile> newDocuments, MultipartFile newLogo) {
         log.info("Updating company verification request with id: {}", requestId);
 
         validateCompanyVerificationRequest(request);
@@ -217,15 +327,37 @@ public class CompanyServiceImpl implements CompanyService {
         }
 
         verificationRequest.setCompanyName(request.getCompanyName());
-        verificationRequest.setBusinessLicense(request.getBusinessLicense());
         verificationRequest.setTaxCode(request.getTaxCode());
         verificationRequest.setContactPerson(request.getContactPerson());
         verificationRequest.setContactEmail(request.getContactEmail());
         verificationRequest.setContactPhone(request.getContactPhone());
         if (request.getAddressRequest() != null) {
-            Address address = addressHelper.build(request.getAddressRequest());
-            verificationRequest.setAddress(address);
+            long primaryCount = request.getAddressRequest().stream()
+                    .filter(a -> Boolean.TRUE.equals(a.getIsPrimary()))
+                    .count();
+
+            if (primaryCount > 1) {
+                throw CompanyException.badRequest("Chỉ được có một địa chỉ chính");
+            }
+
+            verificationRequest.getAddresses().clear();
+            for (AddressRequest ar : request.getAddressRequest()) {
+                Address addr = addressHelper.build(ar);
+                verificationRequest.getAddresses().add(addr);
+            }
         }
+
+        if (newLogo != null && !newLogo.isEmpty()) {
+            if (verificationRequest.getLogoPublicId() != null) {
+                fileUploadService.deleteFile(verificationRequest.getLogoPublicId());
+            }
+            UploadResultResponse logoResult = fileUploadService.uploadSingle(newLogo, UploadType.IMAGES);
+            if ("SUCCESS".equals(logoResult.getStatus())) {
+                verificationRequest.setLogoUrl(logoResult.getUrl());
+                verificationRequest.setLogoPublicId(logoResult.getPublicId());
+            }
+        }
+
         if (verificationRequest.getStatus() == CompanyVerificationStatus.REJECTED) {
             verificationRequest.setStatus(CompanyVerificationStatus.PENDING);
             verificationRequest.setRejectionReason(null);
@@ -247,7 +379,7 @@ public class CompanyServiceImpl implements CompanyService {
                         "Yêu cầu xác minh công ty đã cập nhật",
                         verificationRequest.getUser().getFullName() +
                                 " vừa cập nhật yêu cầu xác minh công ty: " + updatedRequest.getCompanyName(),
-                        NotificationType.COMPANY_VERIFY_REQUESTED.name(),
+                        NotificationType.COMPANY_VERIFY_REQUESTED,
                         updatedRequest.getId(),
                         "COMPANY_VERIFICATION_REQUEST"
                 );
@@ -255,7 +387,7 @@ public class CompanyServiceImpl implements CompanyService {
                 log.error("Failed to send notification for updated request id: {}", requestId, e);
             }
         }
-        return CompanyBaseResponse.fromEntity(updatedRequest.getCompany());
+        return CompanyVerificationRequestResponse.fromEntity(updatedRequest);
     }
 
     @Override
@@ -290,28 +422,57 @@ public class CompanyServiceImpl implements CompanyService {
     public void reviewCompanyVerificationRequest(Long requestId, Long reviewedById, boolean isApproved, String reason) {
         log.info("Reviewing company verification request id: {}", requestId);
 
-        CompanyVerificationRequest verificationRequest = companyVerificationRequestRepository.findById(requestId).orElseThrow(() -> CompanyException.notFound("Company verification request not found with id: " + requestId));
+        CompanyVerificationRequest verificationRequest = companyVerificationRequestRepository.findById(requestId)
+                .orElseThrow(() -> CompanyException.notFound("Company verification request not found with id: " + requestId));
 
         if (verificationRequest.getStatus() != CompanyVerificationStatus.PENDING) {
             throw CompanyException.badRequest("Only pending requests can be reviewed");
         }
 
-        User reviewer = userRepository.findById(reviewedById).orElseThrow(() -> CompanyException.notFound("Reviewer not found with id: " + reviewedById));
+        User reviewer = userRepository.findById(reviewedById)
+                .orElseThrow(() -> CompanyException.notFound("Reviewer not found with id: " + reviewedById));
 
         if (isApproved) {
-            Company newCompany = Company.builder().name(verificationRequest.getCompanyName()).email(verificationRequest.getContactEmail()).phoneNumber(verificationRequest.getContactPhone()).isVerified(true).isActive(true).build();
+            Company newCompany = Company.builder()
+                    .name(verificationRequest.getCompanyName())
+                    .email(verificationRequest.getContactEmail())
+                    .phoneNumber(verificationRequest.getContactPhone())
+                    .taxCode(verificationRequest.getTaxCode())
+                    .website(verificationRequest.getWebsite())
+                    .logoUrl(verificationRequest.getLogoUrl())
+                    .logoPublicId(verificationRequest.getLogoPublicId())
+                    .industry(verificationRequest.getIndustry())
+                    .isVerified(true)
+                    .isActive(true)
+                    .build();
 
             Company savedCompany = companyRepository.save(newCompany);
             log.info("Created new company with id: {}", savedCompany.getId());
 
-            Address addr = verificationRequest.getAddress();
-            if (addr != null) {
-                savedCompany.getAddresses().add(addr);
+            // Copy address DATA into brand-new Address rows owned by the Company.
+            // Never reuse/reassign existing Address entities — they may be referenced
+            // by other entities (e.g. CompanyVerificationRequest) and sharing them
+            // causes FK violations when either owner deletes its addresses.
+            if (verificationRequest.getAddresses() != null) {
+                for (Address src : verificationRequest.getAddresses()) {
+                    Address copy = new Address();
+                    copy.setAddressType(src.getAddressType());
+                    copy.setProvinceCode(src.getProvinceCode());
+                    copy.setProvinceName(src.getProvinceName());
+                    copy.setCommuneCode(src.getCommuneCode());
+                    copy.setCommuneName(src.getCommuneName());
+                    copy.setDetailAddress(src.getDetailAddress());
+                    copy.setIsPrimary(src.getIsPrimary());
+                    copy.setIsActive(src.getIsActive());
+                    copy.setCompany(savedCompany);
+                    savedCompany.getAddresses().add(copy);
+                }
                 companyRepository.save(savedCompany);
             }
 
             verificationRequest.setCompany(savedCompany);
             verificationRequest.setStatus(CompanyVerificationStatus.APPROVED);
+
         } else {
             if (reason == null || reason.trim().isEmpty()) {
                 throw CompanyException.badRequest("Rejection reason is required");
@@ -327,9 +488,23 @@ public class CompanyServiceImpl implements CompanyService {
 
         User requester = verificationRequest.getUser();
         if (isApproved) {
-            notificationService.createNotification(requester.getId(), "Yêu cầu xác minh công ty được duyệt", "Công ty '" + verificationRequest.getCompanyName() + "' đã được xác minh thành công.", NotificationType.COMPANY_VERIFIED.name(), verificationRequest.getId(), "COMPANY_VERIFICATION_REQUEST");
+            notificationService.createNotification(
+                    requester.getId(),
+                    "Yêu cầu xác minh công ty được duyệt",
+                    "Công ty '" + verificationRequest.getCompanyName() + "' đã được xác minh thành công.",
+                    NotificationType.COMPANY_VERIFIED,
+                    verificationRequest.getId(),
+                    "COMPANY_VERIFICATION_REQUEST"
+            );
         } else {
-            notificationService.createNotification(requester.getId(), "Yêu cầu xác minh công ty bị từ chối", "Yêu cầu xác minh công ty '" + verificationRequest.getCompanyName() + "' đã bị từ chối. Lý do: " + reason, NotificationType.COMPANY_REJECTED.name(), verificationRequest.getId(), "COMPANY_VERIFICATION_REQUEST");
+            notificationService.createNotification(
+                    requester.getId(),
+                    "Yêu cầu xác minh công ty bị từ chối",
+                    "Yêu cầu xác minh công ty '" + verificationRequest.getCompanyName() + "' đã bị từ chối. Lý do: " + reason,
+                    NotificationType.COMPANY_REJECTED,
+                    verificationRequest.getId(),
+                    "COMPANY_VERIFICATION_REQUEST"
+            );
         }
     }
 
@@ -550,6 +725,11 @@ public class CompanyServiceImpl implements CompanyService {
         return saved;
     }
 
+    @Override
+    public List<CompanyBaseResponse> getListOfCompanies(String keyword) {
+        return companyRepository.getListCompany(keyword);
+    }
+
     private void validateCompanyVerificationRequest(NewCompanyVerificationRequest request) {
         if (request == null) {
             throw CompanyException.badRequest("Company verification request cannot be null");
@@ -598,7 +778,7 @@ public class CompanyServiceImpl implements CompanyService {
             CompanyVerificationRequest verificationRequest,
             List<MultipartFile> newDocuments) {
 
-        int currentDocCount = verificationRequest.getDocumentFiles().size();
+        int currentDocCount = verificationRequest.getDocuments().size();
         int newDocCount = newDocuments.size();
 
         if (currentDocCount + newDocCount > 10) {
@@ -619,17 +799,15 @@ public class CompanyServiceImpl implements CompanyService {
                 );
 
                 if ("SUCCESS".equals(result.getStatus())) {
-                    CompanyVerificationRequest.DocumentFile docFile =
-                            CompanyVerificationRequest.DocumentFile.builder()
-                                    .fileName(file.getOriginalFilename())
-                                    .url(result.getUrl())
+                    CompanyVerificationDocument docFile =
+                            CompanyVerificationDocument.builder()
+                                    .fileUrl(result.getUrl())
                                     .publicId(result.getPublicId())
-                                    .contentType(file.getContentType())
-                                    .fileSize(file.getSize())
-                                    .uploadedAt(LocalDateTime.now())
+                                    .fileType(file.getOriginalFilename())
+                                    .verificationRequest(verificationRequest)
                                     .build();
 
-                    verificationRequest.addDocumentFile(docFile);
+                    verificationRequest.addDocument(docFile);
                     successCount++;
                     log.debug("Successfully uploaded document: {}", file.getOriginalFilename());
                 } else {

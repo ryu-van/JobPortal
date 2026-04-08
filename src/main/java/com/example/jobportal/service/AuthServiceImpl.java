@@ -1,36 +1,41 @@
 package com.example.jobportal.service;
 
-import com.example.jobportal.exception.RoleException;
-import com.example.jobportal.exception.UserException;
-import com.example.jobportal.model.entity.*;
-import com.example.jobportal.security.CustomUserDetails;
-import com.example.jobportal.security.JwtAuthenticationFilter;
-import com.example.jobportal.dto.request.LoginRequest;
-import com.example.jobportal.dto.request.RegisterUserRequest;
-import com.example.jobportal.dto.response.AuthResponse;
-import com.example.jobportal.dto.response.UserBaseResponse;
-import com.example.jobportal.repository.RefreshTokenRepository;
-import com.example.jobportal.repository.RoleRepository;
-import com.example.jobportal.repository.UserRepository;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.authentication.AuthenticationManager;
 
-import java.security.SecureRandom;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.UUID;
+import com.example.jobportal.dto.request.LoginRequest;
+import com.example.jobportal.dto.request.RegisterUserRequest;
+import com.example.jobportal.dto.response.AuthResponse;
+import com.example.jobportal.dto.response.UserBaseResponse;
+import com.example.jobportal.exception.RoleException;
+import com.example.jobportal.exception.UserException;
+import com.example.jobportal.model.entity.Company;
+import com.example.jobportal.model.entity.CompanyInvitation;
+import com.example.jobportal.model.entity.RefreshToken;
+import com.example.jobportal.model.entity.Role;
+import com.example.jobportal.model.entity.User;
+import com.example.jobportal.repository.RefreshTokenRepository;
+import com.example.jobportal.repository.RoleRepository;
+import com.example.jobportal.repository.UserRepository;
+import com.example.jobportal.security.CustomUserDetails;
+import com.example.jobportal.security.JwtAuthenticationFilter;
+
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -257,7 +262,7 @@ public class AuthServiceImpl implements AuthService{
         }
 
         String newToken = String.format("%06d", new java.util.Random().nextInt(999999));
-        Date expiry = new Date(System.currentTimeMillis() + 10 * 60 * 1000);
+        LocalDateTime expiry = LocalDateTime.now().plusMinutes(10);
 
         user.setVerificationToken(newToken);
         user.setTokenExpiryDate(expiry);
@@ -302,19 +307,18 @@ public class AuthServiceImpl implements AuthService{
         userResponse.setFullName(user.getFullName());
         String displayName = null;
         Long rid = user.getRole().getId();
-        for (com.example.jobportal.model.enums.Role r : com.example.jobportal.model.enums.Role.values()) {
-            if (r.getId() == rid.intValue()) {
-                displayName = r.getDisplayName();
-                break;
-            }
+        try {
+            displayName = com.example.jobportal.model.enums.Role.fromId(rid.intValue()).getDisplayName();
+        } catch (IllegalArgumentException e) {
+            displayName = user.getRole().getName();
         }
         userResponse.setRoleName(displayName != null ? displayName : user.getRole().getName());
-        userResponse.setEmailVerified(user.getIsEmailVerified());
+        userResponse.setIsEmailVerified(user.getIsEmailVerified());
         userResponse.setPhoneNumber(user.getPhoneNumber());
         userResponse.setRoleId(user.getRole().getId());
         userResponse.setGender(user.getGender());
         userResponse.setCode(user.getCode());
-        userResponse.setActive(user.getIsActive());
+        userResponse.setIsActive(user.getIsActive());
         userResponse.setTokenExpiryDate(user.getTokenExpiryDate());
         userResponse.setAvatarUrl(user.getAvatarUrl());
         AuthResponse authResponse = new AuthResponse();

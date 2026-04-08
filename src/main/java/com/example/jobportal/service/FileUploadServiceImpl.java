@@ -28,11 +28,11 @@ public class FileUploadServiceImpl implements FileUploadService {
         try {
             validateFile(file, type);
             String fileName = FileNameUtils.generateUniqueFileName(file);
-            String publicId = "JobPortal/" + type.folder() + "/" + fileName;
+            String publicId = "JobPortal/" + type.getFolder() + "/" + fileName;
             var result = cloudinary.uploader().upload(
                     file.getBytes(),
                     ObjectUtils.asMap(
-                            "folder", "JobPortal/" + type.folder(),
+                            "folder", "JobPortal/" + type.getFolder(),
                             "public_id", fileName,
                             "resource_type", "auto",
                             "overwrite", true
@@ -79,14 +79,40 @@ public class FileUploadServiceImpl implements FileUploadService {
     }
 
     private void validateFile(MultipartFile file, UploadType type) {
-        if (file.isEmpty())
+        if (file == null || file.isEmpty())
             throw new IllegalArgumentException("File rỗng");
 
-        if (file.getSize() > type.maxSize())
-            throw new IllegalArgumentException("File vượt quá dung lượng cho phép");
+        if (file.getSize() > type.getMaxSize())
+            throw new IllegalArgumentException("File vượt quá dung lượng cho phép: " + type.getMaxSize() / (1024 * 1024) + "MB");
 
-        if (!type.contentTypes().contains(file.getContentType()))
-            throw new IllegalArgumentException("Không hỗ trợ định dạng file");
+        String contentType = file.getContentType();
+        if (contentType == null || contentType.isEmpty() || "application/octet-stream".equalsIgnoreCase(contentType)) {
+            contentType = detectContentTypeFromExtension(file.getOriginalFilename());
+        }
+
+        String finalContentType = contentType.toLowerCase();
+        boolean isSupported = type.getContentTypes().stream()
+                .anyMatch(supportedType -> supportedType.equalsIgnoreCase(finalContentType));
+
+        if (!isSupported) {
+            log.warn("Unsupported file format: {} for type: {}", finalContentType, type);
+            throw new IllegalArgumentException("Không hỗ trợ định dạng file: " + finalContentType);
+        }
+    }
+
+    private String detectContentTypeFromExtension(String filename) {
+        if (filename == null) return "application/octet-stream";
+        String extension = filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
+        return switch (extension) {
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "gif" -> "image/gif";
+            case "webp" -> "image/webp";
+            case "pdf" -> "application/pdf";
+            case "doc" -> "application/msword";
+            case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            default -> "application/octet-stream";
+        };
     }
 
     @Override

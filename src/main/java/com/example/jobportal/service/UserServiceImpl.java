@@ -2,27 +2,29 @@ package com.example.jobportal.service;
 
 import java.util.List;
 
-import com.example.jobportal.dto.request.CreateUserRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.jobportal.constant.AppConstants;
+import com.example.jobportal.dto.request.CreateUserRequest;
 import com.example.jobportal.dto.request.UpdateUserRequest;
 import com.example.jobportal.dto.response.UploadResultResponse;
 import com.example.jobportal.dto.response.UserBaseResponse;
 import com.example.jobportal.dto.response.UserDetailResponse;
 import com.example.jobportal.exception.UserException;
-import com.example.jobportal.model.entity.Address;
+import com.example.jobportal.model.entity.AddressHelper;
 import com.example.jobportal.model.entity.Company;
 import com.example.jobportal.model.entity.User;
+import com.example.jobportal.model.enums.Gender;
 import com.example.jobportal.model.enums.Role;
 import com.example.jobportal.model.enums.UploadType;
 import com.example.jobportal.repository.CompanyRepository;
 import com.example.jobportal.repository.RoleRepository;
 import com.example.jobportal.repository.UserRepository;
-import com.example.jobportal.constant.AppConstants;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,6 +35,58 @@ public class UserServiceImpl implements UserService {
     private final CompanyRepository companyRepository;
     private final RoleRepository roleRepository;
     private final FileUploadService fileUploadService;
+    private final AddressHelper addressHelper;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    @Transactional
+    public UserBaseResponse createUser(CreateUserRequest createUserRequest, MultipartFile file) {
+        if (userRepository.existsByEmail(createUserRequest.getEmail())) {
+            throw UserException.badRequest("Email đã tồn tại");
+        }
+
+        User newUser = User.builder()
+                .fullName(createUserRequest.getFullName())
+                .email(createUserRequest.getEmail())
+                .passwordHash(passwordEncoder.encode(createUserRequest.getPassword()))
+                .phoneNumber(createUserRequest.getPhoneNumber())
+                .dateOfBirth(createUserRequest.getDateOfBirth())
+                .gender(createUserRequest.getGender() != null ? Gender.fromValue(createUserRequest.getGender()) : null)
+                .code(generateUserCode())
+                .isActive(true)
+                .isEmailVerified(createUserRequest.getIsEmailVerified())
+                .build();
+
+        if (createUserRequest.getAddressRequest() != null) {
+            newUser.setAddress(addressHelper.build(createUserRequest.getAddressRequest()));
+        }
+
+        com.example.jobportal.model.entity.Role existingRole = null;
+        if (createUserRequest.getRoleId() != null) {
+            existingRole = roleRepository.findById(createUserRequest.getRoleId()).orElse(null);
+        }
+        newUser.setRole(existingRole);
+
+        if (file != null && !file.isEmpty()) {
+            UploadResultResponse uploadResultResponse = fileUploadService.uploadSingle(file, UploadType.IMAGES);
+            if ("SUCCESS".equals(uploadResultResponse.getStatus())) {
+                newUser.setAvatarUrl(uploadResultResponse.getUrl());
+                newUser.setAvatarPublicId(uploadResultResponse.getPublicId());
+            } else {
+                throw new RuntimeException("Upload failed: " + uploadResultResponse.getError());
+            }
+        }
+        userRepository.save(newUser);
+        return UserBaseResponse.fromEntity(newUser);
+    }
+
+    private String generateUserCode() {
+        String code;
+        do {
+            code = String.format("USER-%s", java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        } while (userRepository.existsByCode(code));
+        return code;
+    }
 
     @Override
     public Page<UserBaseResponse> getUsersByRole(
@@ -44,6 +98,7 @@ public class UserServiceImpl implements UserService {
     ) {
         String normalized = role == null ? null : role.trim().toUpperCase();
         String keywordPattern = toLikePatternLower(keyword);
+        String companyPattern = toLikePatternLower(companyName);
 
         Long roleId = null;
 
@@ -55,17 +110,16 @@ public class UserServiceImpl implements UserService {
             roleId = (long) Role.ROLE_CANDIDATE.getId();
         } else if (AppConstants.ROLE_COMPANY_ADMIN.equals(normalized)) {
             roleId = (long) Role.ROLE_COMPANY_ADMIN.getId();
-
         } else if (AppConstants.ROLE_ADMIN.equals(normalized)) {
             roleId = (long) Role.ROLE_ADMIN.getId();
-        }
-        else {
-            throw new IllegalArgumentException("Invalid role value. Allowed: ALL, HR, CANDIDATE, COMPANY_ADMIN");
+        } else {
+            throw new IllegalArgumentException("Invalid role value. Allowed: ALL, HR, CANDIDATE, COMPANY_ADMIN, ADMIN");
         }
 
         return userRepository.getUsersByRole(
                 roleId,
                 keywordPattern,
+                companyPattern,
                 isActive,
                 pageable
         );
@@ -73,7 +127,7 @@ public class UserServiceImpl implements UserService {
 
     private static String toLikePatternLower(String s) {
         if (s == null || s.isBlank()) return null;
-        return "%" + s.toLowerCase() + "%";
+        return "%" + s.trim().toLowerCase() + "%";
     }
 
     @Override
@@ -108,18 +162,25 @@ public class UserServiceImpl implements UserService {
             existingUser.setRole(existingRole);
         }
 
-        Address newAddress = getAddress(request, existingUser);
-
-        existingUser.setAddress(newAddress);
+        if (request.getAddressRequest() != null) {
+            if (existingUser.getAddress() == null) {
+                existingUser.setAddress(addressHelper.build(request.getAddressRequest()));
+            } else {
+                addressHelper.update(existingUser.getAddress(), request.getAddressRequest());
+            }
+        }
 
         if (request.getFullName() != null)
             existingUser.setFullName(request.getFullName());
+
+        if (request.getDateOfBirth() != null)
+            existingUser.setDateOfBirth(request.getDateOfBirth());
 
         if (request.getPhoneNumber() != null)
             existingUser.setPhoneNumber(request.getPhoneNumber());
 
         if (request.getGender() != null)
-            existingUser.setGender(request.getGender());
+            existingUser.setGender(Gender.fromValue(request.getGender()));
 
         if (request.getIsActive() != null)
             existingUser.setIsActive(request.getIsActive());
@@ -129,24 +190,6 @@ public class UserServiceImpl implements UserService {
         return UserBaseResponse.fromEntity(updatedUser);
     }
 
-    private static Address getAddress(UpdateUserRequest request, User existingUser) {
-        Address newAddress = existingUser.getAddress() != null ? existingUser.getAddress() : new Address();
-        if (request.getStreet() != null) {
-            newAddress.setDetailAddress(request.getStreet());
-        }
-        if (request.getWard() != null) {
-            newAddress.setCommuneName(request.getWard());
-        }
-        if (request.getDistrict() != null) {
-            newAddress.setAddressType("district");
-        }
-        if (request.getCity() != null) {
-            newAddress.setProvinceName(request.getCity());
-        }
-        newAddress.setIsPrimary(true);
-        newAddress.setIsActive(true);
-        return newAddress;
-    }
 
     @Override
     public void toggleUserActive(Long id, Boolean isActive) {
