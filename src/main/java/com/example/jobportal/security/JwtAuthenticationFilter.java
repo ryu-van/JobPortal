@@ -48,10 +48,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void deleteCookie(HttpServletResponse response,String name) {
         ResponseCookie cookie = ResponseCookie.from(name, null)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)
                 .path("/")
                 .maxAge(0)
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
 
@@ -59,10 +59,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public static void addTokenCookie(HttpServletResponse response, String name, String token, Duration maxAge) {
         ResponseCookie cookie = ResponseCookie.from(name, token)
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)
                 .path("/")
                 .maxAge(maxAge)
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
     }
