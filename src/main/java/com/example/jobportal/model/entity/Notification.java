@@ -1,5 +1,6 @@
 package com.example.jobportal.model.entity;
 
+import com.example.jobportal.model.enums.NotificationType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -23,7 +24,7 @@ public class Notification {
 
     private String message;
 
-    private String type;
+    private NotificationType type;
 
     private Long referenceId;
 

@@ -1,13 +1,20 @@
 package com.example.jobportal.model.entity;
 
+import com.example.jobportal.converter.EmploymentTypeConverter;
+import com.example.jobportal.converter.ExperienceLevelConverter;
 import com.example.jobportal.converter.JobStatusConverter;
+import com.example.jobportal.converter.WorkTypeConverter;
+import com.example.jobportal.model.enums.EmploymentType;
+import com.example.jobportal.model.enums.ExperienceLevel;
 import com.example.jobportal.model.enums.JobStatus;
+import com.example.jobportal.model.enums.WorkType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 @Builder
 @Setter
@@ -36,9 +43,17 @@ public class Job extends BaseEntity {
     @JoinColumn(name = "address_id")
     private Address address;
 
-    private String workType;
-    private String employmentType;
-    private String experienceLevel;
+    @Convert(converter = WorkTypeConverter.class)
+    @Column(name = "work_type")
+    private WorkType workType;
+
+    @Convert(converter = EmploymentTypeConverter.class)
+    @Column(name = "employment_type")
+    private EmploymentType employmentType;
+
+    @Convert(converter = ExperienceLevelConverter.class)
+    @Column(name = "experience_level")
+    private ExperienceLevel experienceLevel;
 
     @Column(nullable = false)
     private Boolean isSalaryNegotiable = false;
@@ -50,13 +65,11 @@ public class Job extends BaseEntity {
     private BigDecimal salaryMax;
 
     private String salaryCurrency = "VND";
-    private String skills;
     private Integer numberOfPositions = 1;
 
     // Có giờ cụ thể
     private LocalDateTime applicationDeadline;
 
-    @Convert(converter = JobStatusConverter.class)
     private JobStatus status;
 
     private Integer viewsCount = 0;
@@ -80,6 +93,15 @@ public class Job extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<JobCategory> categories;
+
+    @ManyToMany
+    @JoinTable(
+            name = "job_skills",
+            joinColumns = @JoinColumn(name = "job_id"),
+            inverseJoinColumns = @JoinColumn(name = "skill_id")
+    )
+    @Builder.Default
+    private Set<Skill> skills = new HashSet<>();
 
 
 }

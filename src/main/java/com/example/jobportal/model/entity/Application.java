@@ -25,7 +25,6 @@ public class Application extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String coverLetter;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ApplicationStatus status = ApplicationStatus.PENDING;
 
