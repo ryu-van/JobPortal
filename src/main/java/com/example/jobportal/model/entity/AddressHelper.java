@@ -4,6 +4,8 @@ import com.example.jobportal.dto.request.AddressRequest;
 import com.example.jobportal.dto.request.UpdateCompanyRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
+
 
 @Component
 public class AddressHelper {
@@ -16,7 +18,7 @@ public class AddressHelper {
         address.setIsActive(true);
         return address;
     }
-    
+
 
     public void update(Address address, AddressRequest request) {
         map(address, request);

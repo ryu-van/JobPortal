@@ -21,21 +21,25 @@ public class Address extends BaseEntity {
     private String addressType;
 
     private String provinceCode;
+
     private String provinceName;
 
     private String communeCode;
+
     private String communeName;
 
     private String detailAddress;
 
     private Boolean isPrimary = false;
+
     private Boolean isActive = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
     private Company company;
 
-
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "verification_address_id")
+    private CompanyVerificationRequest verificationRequest;
 
 }
