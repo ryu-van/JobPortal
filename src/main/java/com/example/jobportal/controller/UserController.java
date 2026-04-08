@@ -2,6 +2,7 @@ package com.example.jobportal.controller;
 
 import java.util.List;
 
+import com.example.jobportal.dto.request.CreateUserRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -90,19 +91,16 @@ public class UserController extends BaseController {
         return ok("Get list of user in the company", listUserInCompany);
     }
 
-/*
-    @PostMapping
-    public ResponseEntity<ApiResponse<UserBaseResponse>> createUser
-            (@RequestBody UpdateUserRequest updateUserRequest,
-             @RequestParam("file") MultipartFile file)
-    {
-        // Method createUser not implemented in UserService yet
-        // UserBaseResponse createdUser = userService.createUser(updateUserRequest, file);
-        // return created("User created successfully", createdUser);
-        return null;
 
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<UserBaseResponse>> createUser
+            (@RequestPart("createUserRequest") CreateUserRequest createUserRequest,
+             @RequestPart(value = "avatar", required = false) MultipartFile file)
+    {
+        UserBaseResponse userBaseResponse = userService.createUser(createUserRequest, file);
+        return ok("User created successfully", userBaseResponse);
     }
-*/
+
 
 
 
