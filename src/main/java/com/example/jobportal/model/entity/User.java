@@ -1,13 +1,13 @@
 package com.example.jobportal.model.entity;
 
+import com.example.jobportal.model.enums.Gender;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Calendar;
-import java.util.Date;
+import java.time.temporal.ChronoUnit;
 
 @Builder
 @Setter
@@ -22,41 +22,50 @@ public class User extends BaseEntity {
     private Long id;
 
     @NotNull(message = "Full name cannot be null")
+    @Column(name = "full_name", columnDefinition = "VARCHAR(255)")
     private String fullName;
 
+    @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
     @NotNull(message = "Code cannot be null")
+    @Column(columnDefinition = "VARCHAR(255)")
     private String code;
 
-    private Boolean gender;
+    @Column(length = 20, columnDefinition = "VARCHAR(50)")
+    private Gender gender;
 
+    @Column(name = "phone_number", columnDefinition = "VARCHAR(20)")
     private String phoneNumber;
 
     @NotNull(message = "Email cannot be null")
+    @Column(columnDefinition = "VARCHAR(255)")
     private String email;
 
     @NotNull(message = "Password cannot be null")
+    @Column(name = "password_hash", columnDefinition = "VARCHAR(255)")
     private String passwordHash;
 
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
 
+    @Column(name = "avatar_public_id", columnDefinition = "VARCHAR(255)")
     private String avatarPublicId;
 
     @Column(nullable = false)
     private Boolean isActive = true;
 
-
     @Column(name = "is_email_verified")
     private Boolean isEmailVerified;
 
+    @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
-    @Column(name = "verification_token")
+    @Column(name = "verification_token", columnDefinition = "VARCHAR(255)")
     private String verificationToken;
 
     @Column(name = "token_expiry_date")
-    private Date tokenExpiryDate;
+    private LocalDateTime tokenExpiryDate;
 
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "address_id")
@@ -72,17 +81,10 @@ public class User extends BaseEntity {
 
     public void setVerificationToken(String token) {
         this.verificationToken = token;
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(new Date());
-        cal.add(Calendar.HOUR, 24);
-        this.tokenExpiryDate = cal.getTime();
+        this.tokenExpiryDate = LocalDateTime.now().plus(24, ChronoUnit.HOURS);
     }
 
     public boolean isTokenExpired() {
-        return tokenExpiryDate != null && tokenExpiryDate.before(new Date());
+        return tokenExpiryDate != null && tokenExpiryDate.isBefore(LocalDateTime.now());
     }
-
-
-
-
 }
