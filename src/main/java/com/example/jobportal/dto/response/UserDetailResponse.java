@@ -17,10 +17,7 @@ import java.time.LocalDateTime;
 @Setter
 public class UserDetailResponse extends UserBaseResponse{
     private LocalDate dateOfBirth;
-    private String phoneNumber;
     private AddressResponse address;
-    private String avatarUrl;
-    private Boolean isEmailVerified;
     private LocalDateTime lastLoginAt;
     private Long companyId;
     private String companyName;

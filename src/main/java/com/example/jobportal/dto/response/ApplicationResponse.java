@@ -21,7 +21,7 @@ public class ApplicationResponse {
         return ApplicationResponse.builder()
                 .id(app.getId())
                 .jobTitle(app.getJob().getTitle())
-                .status(String.valueOf(app.getStatus()))
+                .status(app.getStatus() != null ? app.getStatus().getValue() : null)
                 .appliedAt(app.getAppliedAt())
                 .coverLetter(app.getCoverLetter())
                 .resumeTitle(app.getResume() != null ? app.getResume().getTitle() : null)

@@ -4,7 +4,7 @@ package com.example.jobportal.dto.response;
 import com.example.jobportal.model.entity.Resume;
 import lombok.*;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Builder
 @NoArgsConstructor
@@ -16,7 +16,7 @@ public class ResumeBaseResponse {
     private String title;
     private   Boolean isPrimary;
     private Boolean isPublic;
-    private Date createdAt;
+    private LocalDateTime createdAt;
     public static ResumeBaseResponse fromEntity(Resume resume) {
         return ResumeBaseResponse.builder()
                 .id(resume.getId())

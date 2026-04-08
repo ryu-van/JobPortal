@@ -21,8 +21,11 @@ public class JobBaseResponseV2 extends JobBaseResponse {
     private String workType;
     private String employmentType;
     private String experienceLevel;
+    private String status;
     private Integer numberOfPositions;
+    private Integer applicationsCount;
     private LocalDateTime applicationDeadline;
+    private LocalDateTime publishedAt;
     private List<String> categoryNames;
 
     public static JobBaseResponseV2 fromEntity(Job job) {
@@ -40,11 +43,14 @@ public class JobBaseResponseV2 extends JobBaseResponse {
                 .salaryCurrency(job.getSalaryCurrency())
 
                 // ===== v2 fields =====
-                .workType(job.getWorkType())
-                .employmentType(job.getEmploymentType())
-                .experienceLevel(job.getExperienceLevel())
+                .workType(String.valueOf(job.getWorkType()))
+                .employmentType(String.valueOf(job.getEmploymentType()))
+                .experienceLevel(String.valueOf(job.getExperienceLevel()))
+                .status(job.getStatus() != null ? job.getStatus().getValue() : null)
                 .numberOfPositions(job.getNumberOfPositions())
+                .applicationsCount(job.getApplicationsCount())
                 .applicationDeadline(job.getApplicationDeadline())
+                .publishedAt(job.getPublishedAt())
                 .categoryNames(
                         job.getCategories() != null
                                 ? job.getCategories().stream()
