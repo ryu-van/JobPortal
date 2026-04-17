@@ -73,7 +73,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     @Transactional
     public void updateStatus(Long applicationId, String newStatus, String notes, Long reviewerId) {
-        Application app = applicationRepository.findById(applicationId)
+        Application app = applicationRepository.findWithDetailsById(applicationId)
                 .orElseThrow(() -> ApplicationException.notFound("Application not found"));
 
         ApplicationStatus status = ApplicationStatus.fromValue(newStatus);
