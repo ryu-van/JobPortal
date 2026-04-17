@@ -1,11 +1,11 @@
 package com.example.jobportal.repository;
 
 import com.example.jobportal.model.entity.Application;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +14,9 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByUserId(Long userId);
     List<Application> findByJobId(Long jobId);
     Optional<Application> findByUserIdAndJobId(Long userId, Long jobId);
+
+    @EntityGraph(attributePaths = {"job", "user", "resume"})
+    Optional<Application> findWithDetailsById(Long id);
 
     @Query("""
         SELECT COUNT(a) > 0 FROM Application a

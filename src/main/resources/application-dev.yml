@@ -1,0 +1,61 @@
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/jobportal}
+    username: ${DB_USERNAME:jobportal_user}
+    password: ${DB_PASSWORD:jobportal_password}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  cache:
+    type: redis
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+  jwt:
+    secret: ${JWT_SECRET:dev_secret_key_change_in_production_minimum_256_bits}
+    access-expiration: ${JWT_ACCESS_EXPIRATION:86400000}  # 24 hours for dev
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days for dev
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+
+logging:
+  level:
+    com.example.jobportal: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+
+app:
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:5173}
+  security:
+    cookie:
+      secure: false
+      same-site: Lax
+    cors:
+      allowed-origins:
+        - http://localhost:5173
+        - http://127.0.0.1:5173
+        - http://localhost:3000
+    rate-limiting:
+      enabled: false
+
+cloudinary:
+  cloud-name: ${CLOUD_NAME:}
+  api-key: ${CLOUD_API_KEY:}
+  api-secret: ${CLOUD_API_SECRET:}

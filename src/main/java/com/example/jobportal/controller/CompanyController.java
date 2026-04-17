@@ -43,7 +43,6 @@ public class CompanyController extends BaseController {
     private final FileUploadService fileUploadService;
     private final IndustryService industryService;
 
-    // ─── Company ────────────────────────────────────────────────────────────────
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CompanyBaseResponse>>> getAllCompanies(
@@ -109,7 +108,6 @@ public class CompanyController extends BaseController {
         return ok("Change company status successfully");
     }
 
-    // ─── Invitations ────────────────────────────────────────────────────────────
 
     @PostMapping("/{companyId}/invitations")
     public ResponseEntity<ApiResponse<InvitationResponse>> createInvitation(
@@ -126,7 +124,6 @@ public class CompanyController extends BaseController {
         return ok("Create invitation successfully", response);
     }
 
-    // ─── Verification Requests ───────────────────────────────────────────────────
 
     @GetMapping("/requests")
     public ResponseEntity<ApiResponse<List<CompanyVerificationRequestResponse>>> getAllVerificationRequests(
@@ -198,7 +195,6 @@ public class CompanyController extends BaseController {
         );
         return ok("Review company verification request successfully");
     }
-    // ─── Industries ───────────────────────────────────────────────────
     @GetMapping("/industries")
     public ResponseEntity<ApiResponse<List<IndustryResponse>>> getAllIndustries(
             @RequestParam(required = false) String name

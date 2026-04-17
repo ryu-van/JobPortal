@@ -41,7 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class AuthServiceImpl implements AuthService{
+public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final JwtService jwtService;
@@ -49,7 +49,8 @@ public class AuthServiceImpl implements AuthService{
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
     private final EmailService emailService;
-    private CompanyService companyService;
+    private final CompanyService companyService;
+    private final com.example.jobportal.config.CookieProperties cookieProperties;
 
     @Value("${spring.jwt.access-expiration}")
     private Long accessTokenExpiration;
@@ -287,17 +288,35 @@ public class AuthServiceImpl implements AuthService{
         refreshTokenRepository.save(refreshToken);
     }
     private void addTokenCookie(HttpServletResponse response, String name, String value, Duration maxAge) {
-        JwtAuthenticationFilter.addTokenCookie(response, name, value, maxAge);
+        JwtAuthenticationFilter.addTokenCookieStatic(
+                response, name, value, maxAge, 
+                cookieProperties.isSecure(), 
+                cookieProperties.getSameSite()
+        );
     }
+    
+    public static void deleteCookie(HttpServletResponse response, String name, 
+                                    com.example.jobportal.config.CookieProperties cookieProps) {
+        ResponseCookie cookie = ResponseCookie.from(name, "")
+                .httpOnly(cookieProps.isHttpOnly())
+                .secure(cookieProps.isSecure())
+                .path(cookieProps.getPath())
+                .maxAge(0)
+                .sameSite(cookieProps.getSameSiteValue())
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
+    }
+    
+    // Legacy deleteCookie for backward compatibility (uses default secure settings)
     public static void deleteCookie(HttpServletResponse response, String name) {
         ResponseCookie cookie = ResponseCookie.from(name, "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)  // Safe default for dev
                 .path("/")
                 .maxAge(0)
                 .sameSite("Lax")
                 .build();
-
         response.addHeader("Set-Cookie", cookie.toString());
     }
     private AuthResponse createAuthResponse(String accessToken, String refreshToken, User user) {

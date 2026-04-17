@@ -409,8 +409,7 @@ public class JobServiceImpl implements JobService {
             address.setDetailAddress(ar.getDetailAddress());
             address.setIsActive(true);
             address.setIsPrimary(Boolean.TRUE.equals(ar.getIsPrimary()));
-            // Explicitly ensure this address is NOT linked to any company or verification request.
-            // Job addresses are private to the job — they must never be shared.
+
             address.setCompany(null);
             address.setVerificationRequest(null);
         }

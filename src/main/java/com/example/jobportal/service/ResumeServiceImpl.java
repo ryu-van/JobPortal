@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import com.example.jobportal.dto.response.UploadResultResponse;
+import com.example.jobportal.model.entity.*;
+import com.example.jobportal.model.enums.UploadType;
+import com.example.jobportal.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 
 import com.example.jobportal.dto.request.EducationRequest;
@@ -13,10 +17,6 @@ import com.example.jobportal.dto.response.ResumeBaseResponse;
 import com.example.jobportal.dto.response.ResumeDetailResponse;
 import com.example.jobportal.exception.ResumeException;
 import com.example.jobportal.exception.UserException;
-import com.example.jobportal.model.entity.Resume;
-import com.example.jobportal.model.entity.ResumeEducation;
-import com.example.jobportal.model.entity.ResumeExperience;
-import com.example.jobportal.model.entity.ResumeSkill;
 import com.example.jobportal.repository.ResumeEducationRepository;
 import com.example.jobportal.repository.ResumeExperienceRepository;
 import com.example.jobportal.repository.ResumeRepository;
@@ -24,6 +24,7 @@ import com.example.jobportal.repository.ResumeSkillRepository;
 import com.example.jobportal.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @RequiredArgsConstructor
 @Service
@@ -33,6 +34,7 @@ public class ResumeServiceImpl implements ResumeService{
     private final ResumeEducationRepository resumeEducationRepository;
     private final ResumeExperienceRepository resumeExperienceRepository;
     private final ResumeSkillRepository resumeSkillRepository;
+    private final FileUploadService  fileUploadService;
 
     @Override
     public ResumeBaseResponse createResume(ResumeRequest resumeRequest) {
@@ -91,6 +93,8 @@ public class ResumeServiceImpl implements ResumeService{
             for (var skillReq : resumeRequest.getSkills()) {
                 ResumeSkill skill = ResumeSkill.builder()
                         .skillName(skillReq.getName())
+                        .proficiencyLevel(skillReq.getProficiencyLevel())
+                        .yearsOfExperience(skillReq.getYearsOfExperience())
                         .resume(resume)
                         .build();
                 resume.getSkills().add(skill);
@@ -230,6 +234,19 @@ public class ResumeServiceImpl implements ResumeService{
 
         
 
+        if (request.getSkills() != null) {
+            resume.getSkills().clear();
+            for (var skillReq : request.getSkills()) {
+                ResumeSkill skill = ResumeSkill.builder()
+                        .skillName(skillReq.getName())
+                        .proficiencyLevel(skillReq.getProficiencyLevel())
+                        .yearsOfExperience(skillReq.getYearsOfExperience())
+                        .resume(resume)
+                        .build();
+                resume.getSkills().add(skill);
+            }
+        }
+
         Resume updated = resumeRepository.save(resume);
 
         return ResumeBaseResponse.fromEntity(updated);
@@ -266,7 +283,64 @@ public class ResumeServiceImpl implements ResumeService{
     }
 
     @Override
-    public List<ResumeBaseResponse> getAllResumes(Boolean isPublic, Long userId) {
+    public List<ResumeBaseResponse> getAllResumes(Boolean isPublic) {
+        Long userId = SecurityUtils.currentUserId();
         return resumeRepository.getAllResumes(isPublic, userId);
     }
+
+    @Override
+    public UploadResultResponse uploadResume(MultipartFile resumeFile) {
+        UploadResultResponse uploadResultResponse =
+                fileUploadService.uploadSingle(resumeFile, UploadType.DOCUMENTS);
+
+        Long senderId = SecurityUtils.currentUserId();
+        User user = userRepository.findById(senderId).orElseThrow();
+
+        String originalFileName = uploadResultResponse.getOriginalFilename();
+        String title = originalFileName != null
+                ? originalFileName.replaceFirst("[.][^.]+$", "")
+                : "My Resume";
+
+        Resume resume = Resume.builder()
+                .fileName(originalFileName)
+                .filePublicId(uploadResultResponse.getPublicId())
+                .fileUrl(uploadResultResponse.getUrl())
+                .title(title)
+                .user(user)
+                .isPrimary(false)
+                .isPublic(false)
+                .build();
+
+        resumeRepository.save(resume);
+        return uploadResultResponse;
+    }
+
+    @Override
+    public ResumeBaseResponse uploadResumeAndCreate(MultipartFile resumeFile) {
+        UploadResultResponse uploadResultResponse =
+                fileUploadService.uploadSingle(resumeFile, UploadType.DOCUMENTS);
+
+        Long senderId = SecurityUtils.currentUserId();
+        User user = userRepository.findById(senderId).orElseThrow();
+
+        String originalFileName = uploadResultResponse.getOriginalFilename();
+        String title = originalFileName != null
+                ? originalFileName.replaceFirst("[.][^.]+$", "")
+                : "My Resume";
+
+        Resume resume = Resume.builder()
+                .fileName(originalFileName)
+                .filePublicId(uploadResultResponse.getPublicId())
+                .fileUrl(uploadResultResponse.getUrl())
+                .title(title)
+                .user(user)
+                .isPrimary(false)
+                .isPublic(false)
+                .build();
+
+        Resume saved = resumeRepository.save(resume);
+        return ResumeBaseResponse.fromEntity(saved);
+    }
+
+
 }

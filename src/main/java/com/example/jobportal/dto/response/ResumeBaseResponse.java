@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 public class ResumeBaseResponse {
     private Long id;
     private String title;
+    private String fileUrl;
     private   Boolean isPrimary;
     private Boolean isPublic;
     private LocalDateTime createdAt;
@@ -21,6 +22,7 @@ public class ResumeBaseResponse {
         return ResumeBaseResponse.builder()
                 .id(resume.getId())
                 .title(resume.getTitle())
+                .fileUrl(resume.getFileUrl())
                 .isPrimary(resume.getIsPrimary())
                 .isPublic(resume.getIsPublic())
                 .createdAt(resume.getCreatedAt())
