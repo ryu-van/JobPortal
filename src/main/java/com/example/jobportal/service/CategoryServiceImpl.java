@@ -3,37 +3,38 @@ package com.example.jobportal.service;
 import com.example.jobportal.dto.request.JobCategoryRequest;
 import com.example.jobportal.dto.response.JobCategoryResponse;
 import com.example.jobportal.exception.JobException;
-import com.example.jobportal.model.entity.Job;
 import com.example.jobportal.model.entity.JobCategory;
 import com.example.jobportal.repository.JobCategoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @RequiredArgsConstructor
 @Service
-public class CategoryServiceImpl implements CategoryService{
+public class CategoryServiceImpl implements CategoryService {
     private final JobCategoryRepository jobCategoryRepository;
 
-
     @Override
+    @Cacheable(cacheNames = "categories", key = "T(java.util.Objects).toString(#name)")
     public List<JobCategoryResponse> getListOfCategories(String name) {
-        List<JobCategory> categories = jobCategoryRepository.findByNameOrAll(name);
-
-        return categories.stream()
+        return jobCategoryRepository.findByNameOrAll(name).stream()
                 .map(category -> new JobCategoryResponse().fromEntity(category))
                 .toList();
     }
 
     @Override
+    @Cacheable(cacheNames = "categories", key = "'id:'+#id")
     public JobCategoryResponse getJobCategory(Long id) {
         JobCategory jobCategory = jobCategoryRepository.findById(id).orElseThrow(
-                () ->  JobException.notFound("Job category not found with id: " + id));
+                () -> JobException.notFound("Job category not found with id: " + id));
         return new JobCategoryResponse().fromEntity(jobCategory);
     }
 
     @Override
+    @CacheEvict(cacheNames = "categories", allEntries = true)
     public JobCategoryResponse createJobCategory(JobCategoryRequest jobCategoryRequest) {
         if (jobCategoryRequest.getName() == null || jobCategoryRequest.getName().isEmpty()) {
             throw JobException.badRequest("Job category name cannot be null or empty");
@@ -50,11 +51,11 @@ public class CategoryServiceImpl implements CategoryService{
         jobCategory.setName(jobCategoryRequest.getName());
         jobCategory.setDescription(jobCategoryRequest.getDescription());
         jobCategory.setParentCategory(parentCategory);
-        JobCategory savedCategory = jobCategoryRepository.save(jobCategory);
-        return new JobCategoryResponse().fromEntity(savedCategory);
+        return new JobCategoryResponse().fromEntity(jobCategoryRepository.save(jobCategory));
     }
 
     @Override
+    @CacheEvict(cacheNames = "categories", allEntries = true)
     public JobCategoryResponse updateJobCategory(Long id, JobCategoryRequest jobCategoryRequest) {
         JobCategory existingCategory = jobCategoryRepository.findById(id)
                 .orElseThrow(() -> JobException.notFound("Job category not found with id: " + id));
@@ -65,11 +66,11 @@ public class CategoryServiceImpl implements CategoryService{
         }
         existingCategory.setName(jobCategoryRequest.getName());
         existingCategory.setDescription(jobCategoryRequest.getDescription());
-        JobCategory updatedCategory = jobCategoryRepository.save(existingCategory);
-        return new JobCategoryResponse().fromEntity(updatedCategory);
+        return new JobCategoryResponse().fromEntity(jobCategoryRepository.save(existingCategory));
     }
 
     @Override
+    @CacheEvict(cacheNames = "categories", allEntries = true)
     public void deleteJobCategory(Long id) {
         JobCategory existingCategory = jobCategoryRepository.findById(id)
                 .orElseThrow(() -> JobException.notFound("Job category not found with id: " + id));

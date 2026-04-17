@@ -65,6 +65,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional(readOnly = true)
+    @org.springframework.cache.annotation.Cacheable(cacheNames = "companies", key = "T(java.util.Objects).toString(#keyword)+'|'+T(java.util.Objects).toString(#location)+'|'+T(java.util.Objects).toString(#isActive)+'|'+#pageable.pageNumber+'|'+#pageable.pageSize")
     public Page<CompanyBaseResponse> getAllCompanies(String keyword, String location, Boolean isActive, Pageable pageable) {
         log.debug("Getting all companies with keyword: {}, location: {}, isActive: {}", keyword, location, isActive);
         return companyRepository.getAllCompanies(keyword, location, isActive, pageable);
@@ -99,15 +100,11 @@ public class CompanyServiceImpl implements CompanyService {
                 throw CompanyException.badRequest("Chỉ được có một địa chỉ chính");
             }
 
-            // First unset all existing primary flags to avoid the partial unique index
-            // violation that occurs when DELETE and INSERT happen in the same flush
+
             company.getAddresses().forEach(a -> a.setIsPrimary(false));
 
-            // Remove addresses that are no longer in the request
             company.getAddresses().clear();
 
-            // Flush the deletes before inserting new rows so the partial unique index
-            // (company_id) WHERE is_primary = true never sees two primary rows at once
             companyRepository.saveAndFlush(company);
 
             for (AddressRequest addressRequest : request.getAddressRequest()) {
@@ -253,8 +250,7 @@ public class CompanyServiceImpl implements CompanyService {
 
             if (addresses != null) {
                 for (Address src : addresses) {
-                    // Copy data into a new Address row — never reuse the same entity
-                    // that was added to the verificationRequest's addresses collection.
+
                     Address copy = new Address();
                     copy.setAddressType(src.getAddressType());
                     copy.setProvinceCode(src.getProvinceCode());
@@ -449,10 +445,6 @@ public class CompanyServiceImpl implements CompanyService {
             Company savedCompany = companyRepository.save(newCompany);
             log.info("Created new company with id: {}", savedCompany.getId());
 
-            // Copy address DATA into brand-new Address rows owned by the Company.
-            // Never reuse/reassign existing Address entities — they may be referenced
-            // by other entities (e.g. CompanyVerificationRequest) and sharing them
-            // causes FK violations when either owner deletes its addresses.
             if (verificationRequest.getAddresses() != null) {
                 for (Address src : verificationRequest.getAddresses()) {
                     Address copy = new Address();
