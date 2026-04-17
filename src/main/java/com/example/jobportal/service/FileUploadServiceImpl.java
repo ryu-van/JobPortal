@@ -28,13 +28,18 @@ public class FileUploadServiceImpl implements FileUploadService {
         try {
             validateFile(file, type);
             String fileName = FileNameUtils.generateUniqueFileName(file);
-            String publicId = "JobPortal/" + type.getFolder() + "/" + fileName;
+
+            // Use "raw" for documents (PDF, DOC, DOCX) so Cloudinary serves them correctly
+            String resourceType = (type == UploadType.DOCUMENTS) ? "raw" : "image";
+
             var result = cloudinary.uploader().upload(
                     file.getBytes(),
                     ObjectUtils.asMap(
                             "folder", "JobPortal/" + type.getFolder(),
                             "public_id", fileName,
-                            "resource_type", "auto",
+                            "resource_type", resourceType,
+                            "type", "upload",
+                            "access_mode", "public",
                             "overwrite", true
                     ));
             return new UploadResultResponse(
@@ -45,8 +50,6 @@ public class FileUploadServiceImpl implements FileUploadService {
                     "SUCCESS",
                     null
             );
-
-
         } catch (IOException e) {
             log.error("Upload failed: {}", file.getOriginalFilename(), e);
             return new UploadResultResponse(
@@ -122,7 +125,13 @@ public class FileUploadServiceImpl implements FileUploadService {
             return;
         }
         try {
-            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            // Try raw first (documents), fall back to image
+            var result = cloudinary.uploader().destroy(publicId,
+                    ObjectUtils.asMap("resource_type", "raw"));
+            if ("not found".equals(result.get("result"))) {
+                cloudinary.uploader().destroy(publicId,
+                        ObjectUtils.asMap("resource_type", "image"));
+            }
             log.info("Deleted Cloudinary file with public_id: {}", publicId);
         } catch (IOException e) {
             log.error("Error deleting Cloudinary file: {}", e.getMessage());
