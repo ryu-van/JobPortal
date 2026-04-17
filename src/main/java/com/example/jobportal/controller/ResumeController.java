@@ -6,12 +6,15 @@ import com.example.jobportal.dto.request.ResumeRequest;
 import com.example.jobportal.dto.response.ApiResponse;
 import com.example.jobportal.dto.response.ResumeBaseResponse;
 import com.example.jobportal.dto.response.ResumeDetailResponse;
+import com.example.jobportal.dto.response.UploadResultResponse;
 import com.example.jobportal.service.AiResumeParserService;
 import com.example.jobportal.service.ResumeService;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -69,10 +72,15 @@ public class ResumeController extends BaseController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ResumeBaseResponse>>> getAllResumes(
-            @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Boolean isPublic) {
-        List<ResumeBaseResponse> resumes = resumeService.getAllResumes(isPublic, userId);
+        List<ResumeBaseResponse> resumes = resumeService.getAllResumes(isPublic);
         return ok("Get resume list successfully", resumes);
+    }
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ResumeBaseResponse>> uploadResume(
+            @RequestParam("file") MultipartFile file) {
+        ResumeBaseResponse resume = resumeService.uploadResumeAndCreate(file);
+        return ok("Upload successfully", resume);
     }
 }
 

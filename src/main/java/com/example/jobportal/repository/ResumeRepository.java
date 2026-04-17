@@ -14,6 +14,7 @@ public interface ResumeRepository extends JpaRepository<Resume, Long> {
        SELECT new com.example.jobportal.dto.response.ResumeBaseResponse(
            r.id,
            r.title,
+           r.fileUrl,
            r.isPrimary,
            r.isPublic,
            r.createdAt
