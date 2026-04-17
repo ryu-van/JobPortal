@@ -1,6 +1,13 @@
+
 spring:
   application:
     name: JobPortal
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+    group:
+      dev: dev
+      prod: prod
 
   datasource:
     url: ${DB_URL}
@@ -18,7 +25,7 @@ spring:
       password: ${REDIS_PASSWORD:}
       timeout: 60000
   cache:
-    type: simple
+    type: redis
 
   jpa:
     hibernate:
@@ -36,7 +43,7 @@ spring:
     access-expiration: ${JWT_ACCESS_EXPIRATION}
     refresh-expiration: ${JWT_REFRESH_EXPIRATION}
 
-  base-url: ${API_CONTEXT_PATH}
+  base-url: ${API_CONTEXT_PATH:/api}
 
   rsocket:
     server:
@@ -58,8 +65,10 @@ spring:
 
 logging:
   level:
-    com.example.jobportal: DEBUG
-    org.springframework.security: DEBUG
+    root: INFO
+    com.example.jobportal: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 app:
   frontend:
