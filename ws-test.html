@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    #log { background: #111; color: #0f0; padding: 10px; height: 300px; overflow-y: auto; }
+    input, button { margin: 4px; padding: 6px; }
+  </style>
+</head>
+<body>
+  <h2>WebSocket / STOMP Test</h2>
+
+  <div>
+    <input id="url" value="http://localhost:8080/ws" size="40" placeholder="WebSocket URL"/>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+  </div>
+
+  <div>
+    <input id="topic" value="/user/queue/notifications" size="40" placeholder="Subscribe topic"/>
+    <button onclick="subscribe()">Subscribe</button>
+  </div>
+
+  <div>
+    <input id="dest" value="/app/test" size="30" placeholder="Send destination"/>
+    <input id="msg" value='{"message":"hello"}' size="30" placeholder="Message body"/>
+    <button onclick="sendMsg()">Send</button>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    let stompClient = null;
+
+    function log(msg) {
+      const el = document.getElementById('log');
+      el.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function connect() {
+      const url = document.getElementById('url').value;
+      // SockJS dùng cookie tự động — đảm bảo bạn đã login trên cùng domain
+      const socket = new SockJS(url);
+      stompClient = Stomp.over(socket);
+      stompClient.debug = (str) => log('DEBUG: ' + str);
+
+      stompClient.connect({}, (frame) => {
+        log('✅ Connected: ' + frame);
+      }, (error) => {
+        log('❌ Error: ' + error);
+      });
+    }
+
+    function disconnect() {
+      if (stompClient) stompClient.disconnect(() => log('Disconnected'));
+    }
+
+    function subscribe() {
+      const topic = document.getElementById('topic').value;
+      stompClient.subscribe(topic, (msg) => {
+        log('📨 Received on ' + topic + ': ' + msg.body);
+      });
+      log('Subscribed to: ' + topic);
+    }
+
+    function sendMsg() {
+      const dest = document.getElementById('dest').value;
+      const body = document.getElementById('msg').value;
+      stompClient.send(dest, {}, body);
+      log('📤 Sent to ' + dest + ': ' + body);
+    }
+  </script>
+</body>
+</html>
