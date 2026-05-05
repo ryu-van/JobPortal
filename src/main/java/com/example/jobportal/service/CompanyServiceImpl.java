@@ -29,6 +29,7 @@ import com.example.jobportal.utils.SecurityUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -75,6 +76,15 @@ public class CompanyServiceImpl implements CompanyService {
     @Transactional
     public CompanyBaseResponse updateCompany(Long companyId, UpdateCompanyRequest request) {
         log.info("Updating company with id: {}", companyId);
+
+        // Company-scoping check: caller must belong to the same company
+        Long callerId = SecurityUtils.currentUserId();
+        User caller = userRepository.findById(callerId)
+                .orElseThrow(() -> CompanyException.notFound("Caller user not found with id: " + callerId));
+        Long callerCompanyId = caller.getCompany() != null ? caller.getCompany().getId() : null;
+        if (callerCompanyId == null || !callerCompanyId.equals(companyId)) {
+            throw new AccessDeniedException("Access denied: you can only update your own company");
+        }
 
         Company company = companyRepository.findById(companyId).orElseThrow(() -> CompanyException.notFound("Company not found with id: " + companyId));
 
@@ -504,6 +514,16 @@ public class CompanyServiceImpl implements CompanyService {
     @Transactional
     public InvitationResponse createInvitation(Long companyId, Long createdBy, String email, int maxUses, int expiresInHours) {
         log.info("Creating invitation for company: {} by user: {}", companyId, createdBy);
+
+        // Company-scoping check: caller must belong to the same company
+        Long callerId = SecurityUtils.currentUserId();
+        User caller = userRepository.findById(callerId)
+                .orElseThrow(() -> CompanyException.notFound("Caller user not found with id: " + callerId));
+        Long callerCompanyId = caller.getCompany() != null ? caller.getCompany().getId() : null;
+        if (callerCompanyId == null || !callerCompanyId.equals(companyId)) {
+            throw new AccessDeniedException("Access denied: you can only create invitations for your own company");
+        }
+
         Company company = companyRepository.findById(companyId).orElseThrow(() -> CompanyException.notFound("Company not found"));
         User user = userRepository.findById(createdBy).orElseThrow(() -> CompanyException.notFound("User not found"));
 
@@ -522,6 +542,26 @@ public class CompanyServiceImpl implements CompanyService {
         log.info("✅ Created invitation with code: {}", saved.getCode());
 
         return InvitationResponse.fromEntity(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<InvitationResponse> getActiveInvitationsForCompany(Long companyId) {
+        log.debug("Getting active invitations for company: {}", companyId);
+
+        // Company-scoping check: caller must belong to the same company
+        Long callerId = SecurityUtils.currentUserId();
+        User caller = userRepository.findById(callerId)
+                .orElseThrow(() -> CompanyException.notFound("Caller user not found with id: " + callerId));
+        Long callerCompanyId = caller.getCompany() != null ? caller.getCompany().getId() : null;
+        if (callerCompanyId == null || !callerCompanyId.equals(companyId)) {
+            throw new AccessDeniedException("Access denied: you can only view invitations for your own company");
+        }
+
+        return invitationRepository.findByCompanyIdAndIsActiveTrue(companyId)
+                .stream()
+                .map(InvitationResponse::fromEntity)
+                .toList();
     }
 
 
@@ -720,6 +760,50 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     public List<CompanyBaseResponse> getListOfCompanies(String keyword) {
         return companyRepository.getListCompany(keyword);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserBaseResponse> getHrUsersForCompany(Long companyId) {
+        log.debug("Getting HR users for company: {}", companyId);
+
+        // Company-scoping check: caller must belong to the same company
+        Long callerId = SecurityUtils.currentUserId();
+        User caller = userRepository.findById(callerId)
+                .orElseThrow(() -> CompanyException.notFound("Caller user not found with id: " + callerId));
+        Long callerCompanyId = caller.getCompany() != null ? caller.getCompany().getId() : null;
+        if (callerCompanyId == null || !callerCompanyId.equals(companyId)) {
+            throw new AccessDeniedException("Access denied: you can only view HR users of your own company");
+        }
+
+        return userRepository.getUserInCompany(null, null, companyId, "asc");
+    }
+
+    @Override
+    @Transactional
+    public void updateHrUserStatus(Long companyId, Long userId, boolean isActive) {
+        log.info("Updating HR user {} status to {} for company {}", userId, isActive, companyId);
+
+        // Company-scoping check: caller must belong to the same company
+        Long callerId = SecurityUtils.currentUserId();
+        User caller = userRepository.findById(callerId)
+                .orElseThrow(() -> CompanyException.notFound("Caller user not found with id: " + callerId));
+        Long callerCompanyId = caller.getCompany() != null ? caller.getCompany().getId() : null;
+        if (callerCompanyId == null || !callerCompanyId.equals(companyId)) {
+            throw new AccessDeniedException("Access denied: you can only manage HR users of your own company");
+        }
+
+        // Verify target user exists and belongs to the same company
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> CompanyException.notFound("User not found with id: " + userId));
+        Long targetCompanyId = targetUser.getCompany() != null ? targetUser.getCompany().getId() : null;
+        if (targetCompanyId == null || !targetCompanyId.equals(companyId)) {
+            throw new AccessDeniedException("Access denied: target user does not belong to company " + companyId);
+        }
+
+        targetUser.setIsActive(isActive);
+        userRepository.save(targetUser);
+        log.info("Successfully updated HR user {} is_active to {}", userId, isActive);
     }
 
     private void validateCompanyVerificationRequest(NewCompanyVerificationRequest request) {

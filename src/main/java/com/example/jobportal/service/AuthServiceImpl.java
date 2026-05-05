@@ -111,6 +111,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         user.setVerificationToken(otpToken);
+        user.setCompany(company);  // company is null for non-invitation paths — no change in that path
 
         userRepository.save(user);
         log.info("✅ User created successfully with ID: {} for company: {}",

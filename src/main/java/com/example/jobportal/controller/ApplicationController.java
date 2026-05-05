@@ -8,6 +8,7 @@ import com.example.jobportal.security.CustomUserDetails;
 import com.example.jobportal.service.ApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +22,7 @@ public class ApplicationController extends BaseController {
     private final ApplicationService applicationService;
     
 
-    @PostMapping("/")
+    @PostMapping
     public ResponseEntity<ApiResponse<ApplicationResponse>> applyForJob(
             @AuthenticationPrincipal CustomUserDetails currentUser,
             @RequestBody ApplicationRequest request
@@ -34,6 +35,7 @@ public class ApplicationController extends BaseController {
     }
 
 
+    @PreAuthorize("hasAnyRole('HR', 'COMPANY_ADMIN')")
     @PutMapping("/{applicationId}/status")
     public ResponseEntity<ApiResponse<Void>> updateApplicationStatus(
             @PathVariable Long applicationId,
@@ -62,6 +64,7 @@ public class ApplicationController extends BaseController {
     }
 
 
+    @PreAuthorize("hasAnyRole('HR', 'COMPANY_ADMIN')")
     @GetMapping("/job/{jobId}")
     public ResponseEntity<ApiResponse<List<ApplicationResponse>>> getApplicationsByJob(
             @PathVariable Long jobId
@@ -70,6 +73,7 @@ public class ApplicationController extends BaseController {
         return ok("Lấy danh sách ứng viên ứng tuyển theo job thành công", responses);
     }
 
+    @PreAuthorize("hasAnyRole('HR', 'COMPANY_ADMIN')")
     @GetMapping("/{applicationId}/history")
     public ResponseEntity<ApiResponse<List<ApplicationStatusHistoryResponse>>> getStatusHistory(
             @PathVariable Long applicationId

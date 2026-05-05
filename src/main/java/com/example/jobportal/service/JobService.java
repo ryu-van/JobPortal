@@ -14,7 +14,10 @@ import com.example.jobportal.model.entity.Skill;
 
 public interface JobService {
     // feature for customer
-    Page<JobBaseResponse> getBaseJobs(String keyword, String category, String location, Pageable pageable);
+    Page<JobBaseResponse> getBaseJobs(String keyword, String category, String location,
+                                      String employmentType, String experienceLevel,
+                                      java.math.BigDecimal salaryMin, java.math.BigDecimal salaryMax,
+                                      Pageable pageable);
     Page<JobResponse> getJobs(String keyword, String category, String location, Pageable pageable);
     JobDetailResponse getJobDetail(Long jobId, Long userId);
     // feature for hr,admin company, admin system
@@ -23,7 +26,7 @@ public interface JobService {
     void changeStatusJob(Long jobId,String status);
     Page<JobBaseResponse> getJobsByHr(String keyword, String category, String location,String status,Long hrId, Pageable pageable);
     Page<JobBaseResponse> getJobsByCompany(String keyword, String category, String location,String status,Long companyId, Pageable pageable);
-    Page<JobResponse> getJobs(String keyword, String category,String location, String status,Pageable pageable);
+    Page<JobResponse> getJobs(String keyword, String category,String location, String status, com.example.jobportal.security.CustomUserDetails currentUser, Pageable pageable);
     JobBaseResponse addJobToListSavedJob(Long jobId, Long userId);
     void removeJobFromListSavedJob(Long savedJobId);
     List<JobBaseResponse> getSavedJobs(Long userId);

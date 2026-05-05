@@ -13,7 +13,7 @@ import com.example.jobportal.dto.response.UserBaseResponse;
 import com.example.jobportal.model.entity.User;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long>, UserRepositoryCustom {
     Optional<User> findByEmail(String email);
 
     @Query("""
@@ -29,7 +29,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
             u.isEmailVerified,
             u.tokenExpiryDate,
             u.phoneNumber,
-            u.avatarUrl
+            u.avatarUrl,
+            c.id
         )
         FROM User u
         LEFT JOIN u.company c
@@ -79,7 +80,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
         u.isEmailVerified,
         u.tokenExpiryDate,
         u.phoneNumber,
-        u.avatarUrl
+        u.avatarUrl,
+        u.company.id
     )
     FROM User u
     WHERE u.company.id = :companyId
@@ -102,5 +104,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
             String asc
     );
 
+    @Query("""
+        SELECT COUNT(u) FROM User u
+        WHERE u.company.id = :companyId
+          AND u.role.name = 'HR'
+          AND u.isActive = true
+    """)
+    long countActiveHrUsersByCompanyId(Long companyId);
 
 }

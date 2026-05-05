@@ -45,20 +45,34 @@ public class SecurityConfig {
     @Value("${spring.profiles.active:dev}")
     private String activeProfile;
 
-    /**
-     * Main security filter chain for API endpoints
-     */
+
     @Bean
     @Order(1)
+    public SecurityFilterChain wsSecurityFilterChain(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher("/ws/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll()
+                )
+                .build();
+    }
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
-        String authPath = apiPrefix + "/auth/**";
-        String userPath = apiPrefix + "/users/**";
-        String jobPath = apiPrefix + "/jobs/**";
-        String categoryPath = apiPrefix + "/categories/**";
-        String companyPath = apiPrefix + "/companies/**";
-        String applicationPath = apiPrefix + "/applications/**";
-        String resumePath = apiPrefix + "/resumes/**";
-        String notificationPath = apiPrefix + "/notifications/**";
+        String authPath = apiPrefix + "/auth";
+        String userPath = apiPrefix + "/users";
+        String jobPath = apiPrefix + "/jobs";
+        String categoryPath = apiPrefix + "/categories";
+        String companyPath = apiPrefix + "/companies";
+        String applicationPath = apiPrefix + "/applications";
+        String resumePath = apiPrefix + "/resumes";
+        String notificationPath = apiPrefix + "/notifications";
 
         return http
                 .securityMatcher(apiPrefix + "/**")
@@ -82,10 +96,10 @@ public class SecurityConfig {
                     );
                     headers.contentTypeOptions(contentTypeOptions -> {});
                     headers.frameOptions(frameOptions -> frameOptions.deny());
-                    headers.xssProtection(xss -> xss.disable());  // CSP is preferred
+                    headers.xssProtection(xss -> xss.disable());
                     if (isProduction()) {
                         headers.httpStrictTransportSecurity(hsts -> hsts
-                                .maxAgeInSeconds(31536000)  // 1 year
+                                .maxAgeInSeconds(31536000)
                                 .includeSubDomains(true)
                                 .preload(true)
                         );
@@ -101,13 +115,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers(authPath).permitAll()
+                        .requestMatchers(authPath+"/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, jobPath+"/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, categoryPath+"/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, companyPath+"/**").permitAll()
                         
-                        .requestMatchers(HttpMethod.GET, jobPath).permitAll()
-                        .requestMatchers(HttpMethod.GET, categoryPath).permitAll()
-                        .requestMatchers(HttpMethod.GET, companyPath).permitAll()
-                        
-                        .requestMatchers(HttpMethod.POST, applicationPath).hasAnyRole(
+                        .requestMatchers(HttpMethod.POST, applicationPath+"/**").hasAnyRole(
                                 AppConstants.ROLE_CANDIDATE, AppConstants.ROLE_ADMIN)
                         .requestMatchers(HttpMethod.GET, applicationPath + "/me/**").hasAnyRole(
                                 AppConstants.ROLE_CANDIDATE, AppConstants.ROLE_ADMIN)
@@ -116,18 +129,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, resumePath + "/**").hasAnyRole(
                                 AppConstants.ROLE_CANDIDATE, AppConstants.ROLE_ADMIN)
                         
-                        .requestMatchers(HttpMethod.POST, jobPath).hasAnyRole(
+                        .requestMatchers(HttpMethod.POST, jobPath+"/**").hasAnyRole(
                                 AppConstants.ROLE_HR, AppConstants.ROLE_COMPANY_ADMIN, AppConstants.ROLE_ADMIN)
-                        .requestMatchers(HttpMethod.PUT, jobPath).hasAnyRole(
+                        .requestMatchers(HttpMethod.PUT, jobPath+"/**").hasAnyRole(
                                 AppConstants.ROLE_HR, AppConstants.ROLE_COMPANY_ADMIN, AppConstants.ROLE_ADMIN)
-                        .requestMatchers(HttpMethod.DELETE, jobPath).hasAnyRole(
+                        .requestMatchers(HttpMethod.DELETE, jobPath+"/**").hasAnyRole(
                                 AppConstants.ROLE_HR, AppConstants.ROLE_COMPANY_ADMIN, AppConstants.ROLE_ADMIN)
                         .requestMatchers(HttpMethod.GET, applicationPath + "/job/**").hasAnyRole(
                                 AppConstants.ROLE_HR, AppConstants.ROLE_COMPANY_ADMIN, AppConstants.ROLE_ADMIN)
-                        .requestMatchers(HttpMethod.PUT, applicationPath + "/**/status").hasAnyRole(
+                        .requestMatchers(HttpMethod.PUT, applicationPath + "/*/status").hasAnyRole(
                                 AppConstants.ROLE_HR, AppConstants.ROLE_COMPANY_ADMIN, AppConstants.ROLE_ADMIN)
                         
-                        .requestMatchers(apiPrefix + "/companies/**/hr/**").hasAnyRole(
+                        .requestMatchers(apiPrefix + "/companies/*/hr/**").hasAnyRole(
                                 AppConstants.ROLE_COMPANY_ADMIN, AppConstants.ROLE_ADMIN)
                         .requestMatchers(HttpMethod.PUT, apiPrefix + "/companies/**").hasAnyRole(
                                 AppConstants.ROLE_COMPANY_ADMIN, AppConstants.ROLE_ADMIN)

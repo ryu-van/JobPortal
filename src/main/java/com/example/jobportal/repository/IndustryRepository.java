@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface IndustryRepository extends JpaRepository<Industry, Long> {
     Optional<Industry> findByName(String name);
 
+    Optional<Industry> findByCode(String code);
+
     List<Industry> findByNameContainingIgnoreCase(String industryName);
 
     boolean existsByCode(String code);

@@ -27,6 +27,7 @@ public interface CompanyService {
     void deleteCompany(Long companyId);
     void reviewCompanyVerificationRequest(Long companyVerificationRequestId, Long reviewedById, boolean isApproved, String reason);
     InvitationResponse createInvitation(Long companyId, Long createdBy, String email, int maxUses, int expiresInHours);
+    List<InvitationResponse> getActiveInvitationsForCompany(Long companyId);
     void markUsed(CompanyInvitation invitation);
     Optional<CompanyInvitation> findByCode(String code);
     Optional<CompanyInvitation> findValidInvitation(String code);
@@ -42,4 +43,8 @@ public interface CompanyService {
     CompanyInvitation extendInvitation(Long invitationId, Integer additionalHours);
     CompanyInvitation resetUsageCount(Long invitationId);
     List<CompanyBaseResponse> getListOfCompanies(String keyword);
+
+    // HR user management (Company Admin only)
+    List<UserBaseResponse> getHrUsersForCompany(Long companyId);
+    void updateHrUserStatus(Long companyId, Long userId, boolean isActive);
 }

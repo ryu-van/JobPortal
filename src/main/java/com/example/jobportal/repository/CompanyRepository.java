@@ -1,6 +1,7 @@
 package com.example.jobportal.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,7 +14,9 @@ import com.example.jobportal.dto.response.CompanyBaseResponse;
 import com.example.jobportal.model.entity.Company;
 
 @Repository
-public interface CompanyRepository extends JpaRepository<Company, Long> {
+public interface CompanyRepository extends JpaRepository<Company, Long>, CompanyRepositoryCustom {
+
+    Optional<Company> findByName(String name);
 
     @Query("""
         SELECT new com.example.jobportal.dto.response.CompanyBaseResponse(

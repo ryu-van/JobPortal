@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
 @Builder
 public class ApplicationResponse {
     private Long id;
+    private Long jobId;
     private String jobTitle;
+    private String companyName;
     private String status;
     private LocalDateTime appliedAt;
     private String coverLetter;
@@ -20,7 +22,9 @@ public class ApplicationResponse {
     public static ApplicationResponse fromEntity(Application app) {
         return ApplicationResponse.builder()
                 .id(app.getId())
+                .jobId(app.getJob().getId())
                 .jobTitle(app.getJob().getTitle())
+                .companyName(app.getJob().getCompany() != null ? app.getJob().getCompany().getName() : null)
                 .status(app.getStatus() != null ? app.getStatus().getValue() : null)
                 .appliedAt(app.getAppliedAt())
                 .coverLetter(app.getCoverLetter())

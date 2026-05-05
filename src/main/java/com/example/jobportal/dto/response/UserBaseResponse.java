@@ -29,6 +29,7 @@ public class UserBaseResponse {
     private LocalDateTime tokenExpiryDate;
     private String phoneNumber;
     private String avatarUrl;
+    private Long companyId;
     public static UserBaseResponse fromEntity(User user) {
         return UserBaseResponse.builder()
                 .id(user.getId())
@@ -43,6 +44,7 @@ public class UserBaseResponse {
                 .tokenExpiryDate(user.getTokenExpiryDate())
                 .phoneNumber(user.getPhoneNumber())
                 .avatarUrl(user.getAvatarUrl())
+                .companyId(user.getCompany() != null ? user.getCompany().getId() : null)
                 .build();
     }
 }

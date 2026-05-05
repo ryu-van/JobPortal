@@ -11,7 +11,9 @@ import com.example.jobportal.model.entity.*;
 import com.example.jobportal.model.enums.ApplicationStatus;
 import com.example.jobportal.model.enums.NotificationType;
 import com.example.jobportal.repository.*;
+import com.example.jobportal.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,6 +78,15 @@ public class ApplicationServiceImpl implements ApplicationService {
         Application app = applicationRepository.findWithDetailsById(applicationId)
                 .orElseThrow(() -> ApplicationException.notFound("Application not found"));
 
+        // Company-scoping check: reviewer must belong to the same company as the job
+        Long callerId = SecurityUtils.currentUserId();
+        User caller = userRepository.findById(callerId)
+                .orElseThrow(() -> UserException.notFound("Reviewer not found"));
+        Long callerCompanyId = caller.getCompany().getId();
+        if (!app.getJob().getCompany().getId().equals(callerCompanyId)) {
+            throw new AccessDeniedException("Access denied: application belongs to a different company");
+        }
+
         ApplicationStatus status = ApplicationStatus.fromValue(newStatus);
         ApplicationStatus oldStatus = app.getStatus();
         app.setStatus(status);
@@ -120,6 +131,18 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     public List<ApplicationResponse> getApplicationsByJob(Long jobId) {
+        // Company-scoping check: caller must belong to the same company as the job
+        Long callerId = SecurityUtils.currentUserId();
+        User caller = userRepository.findById(callerId)
+                .orElseThrow(() -> UserException.notFound("User not found"));
+        Long callerCompanyId = caller.getCompany().getId();
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> JobException.notFound("Job not found"));
+        if (!job.getCompany().getId().equals(callerCompanyId)) {
+            throw new AccessDeniedException("Access denied: job belongs to a different company");
+        }
+
         return applicationRepository.findByJobId(jobId)
                 .stream()
                 .map(ApplicationResponse::fromEntity)
@@ -128,6 +151,18 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     public List<ApplicationStatusHistoryResponse> getStatusHistory(Long applicationId) {
+        // Company-scoping check: caller must belong to the same company as the application's job
+        Long callerId = SecurityUtils.currentUserId();
+        User caller = userRepository.findById(callerId)
+                .orElseThrow(() -> UserException.notFound("User not found"));
+        Long callerCompanyId = caller.getCompany().getId();
+
+        Application app = applicationRepository.findWithDetailsById(applicationId)
+                .orElseThrow(() -> ApplicationException.notFound("Application not found"));
+        if (!app.getJob().getCompany().getId().equals(callerCompanyId)) {
+            throw new AccessDeniedException("Access denied: application belongs to a different company");
+        }
+
         List<ApplicationStatusHistory> historyList =
                 historyRepository.findByApplicationIdOrderByChangedAtDesc(applicationId);
 

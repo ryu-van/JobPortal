@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ApplicationRepository extends JpaRepository<Application, Long> {
+public interface ApplicationRepository extends JpaRepository<Application, Long>, ApplicationRepositoryCustom {
     List<Application> findByUserId(Long userId);
     List<Application> findByJobId(Long jobId);
     Optional<Application> findByUserIdAndJobId(Long userId, Long jobId);
