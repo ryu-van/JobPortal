@@ -3,6 +3,7 @@ package com.example.jobportal.security;
 import com.example.jobportal.config.CookieProperties;
 import com.example.jobportal.service.JwtService;
 import com.example.jobportal.service.UserDetailsServiceImpl;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -12,7 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -21,7 +24,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 
 @Slf4j
@@ -32,6 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsServiceImpl userDetailsService;
     private final CookieProperties cookieProperties;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
@@ -39,7 +46,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String jwt = extractJwtFromCookies(request);
         
         if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            authenticate(jwt, request, response);
+            try {
+                authenticate(jwt, request, response);
+            } catch (DisabledException e) {
+                log.warn("Blocked request from inactive user, URI: {}", request.getRequestURI());
+                deleteCookie(response, cookieProperties.getAccessTokenName());
+                writeForbiddenResponse(response, request.getRequestURI());
+                return;
+            }
         }
         
         filterChain.doFilter(request, response);
@@ -104,6 +118,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String email = jwtService.extractUsername(jwt);
             CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(email);
+
+            if (!userDetails.isEnabled()) {
+                throw new DisabledException("User account is inactive: " + email);
+            }
             
             if (jwtService.isTokenValid(jwt, userDetails)) {
                 UsernamePasswordAuthenticationToken authentication =
@@ -121,6 +139,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 deleteCookie(response, cookieProperties.getAccessTokenName());
             }
             
+        } catch (DisabledException e) {
+            throw e;
         } catch (ExpiredJwtException e) {
             log.debug("JWT token expired: {}", e.getMessage());
             deleteCookie(response, cookieProperties.getAccessTokenName());
@@ -141,5 +161,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         return path.contains("/auth/") && 
                (path.contains("/login") || path.contains("/register"));
+    }
+
+    private void writeForbiddenResponse(HttpServletResponse response, String path) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+        Map<String, Object> errorDetails = new HashMap<>();
+        errorDetails.put("timestamp", LocalDateTime.now().toString());
+        errorDetails.put("status", HttpServletResponse.SC_FORBIDDEN);
+        errorDetails.put("error", "Forbidden");
+        errorDetails.put("message", "Your account has been deactivated. Please contact an administrator.");
+        errorDetails.put("path", path);
+
+        objectMapper.writeValue(response.getOutputStream(), errorDetails);
     }
 }

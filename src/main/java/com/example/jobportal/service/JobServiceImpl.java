@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,9 +64,13 @@ public class JobServiceImpl implements JobService {
     private final SkillRepository skillRepository;
 
     @Override
-    @Cacheable(cacheNames = "jobs:base", key = "T(java.util.Objects).toString(#keyword)+'|'+T(java.util.Objects).toString(#category)+'|'+T(java.util.Objects).toString(#location)+'|'+#pageable.pageNumber+'|'+#pageable.pageSize+'|'+#pageable.sort")
-    public Page<JobBaseResponse> getBaseJobs(String keyword, String category, String location, Pageable pageable) {
-        Specification<Job> spec = buildSpecification(keyword, category, location, null, null, null, true);
+    @Cacheable(cacheNames = "jobs:base", key = "T(java.util.Objects).toString(#keyword)+'|'+T(java.util.Objects).toString(#category)+'|'+T(java.util.Objects).toString(#location)+'|'+T(java.util.Objects).toString(#employmentType)+'|'+T(java.util.Objects).toString(#experienceLevel)+'|'+T(java.util.Objects).toString(#salaryMin)+'|'+T(java.util.Objects).toString(#salaryMax)+'|'+#pageable.pageNumber+'|'+#pageable.pageSize+'|'+#pageable.sort")
+    public Page<JobBaseResponse> getBaseJobs(String keyword, String category, String location,
+                                             String employmentType, String experienceLevel,
+                                             java.math.BigDecimal salaryMin, java.math.BigDecimal salaryMax,
+                                             Pageable pageable) {
+        Specification<Job> spec = buildSpecification(keyword, category, location, null, null, null, true,
+                employmentType, experienceLevel, salaryMin, salaryMax);
         return jobRepository.findAll(spec, pageable).map(JobBaseResponse::fromEntity);
     }
 
@@ -84,8 +89,14 @@ public class JobServiceImpl implements JobService {
     public JobBaseResponse createJob(JobRequest jobRequest) {
         validateJobRequest(jobRequest);
 
-        Company existingCompany = companyRepository.findById(jobRequest.getCompanyId())
-                .orElseThrow(() -> JobException.notFound("Company not found"));
+        // Resolve caller's company — never trust the client-supplied company ID
+        Long currentUserId = SecurityUtils.currentUserId();
+        User creator = userRepository.findById(currentUserId)
+                .orElseThrow(() -> JobException.notFound("Current user not found"));
+        if (creator.getCompany() == null) {
+            throw new AccessDeniedException("Current user is not associated with any company");
+        }
+        Company callerCompany = creator.getCompany();
 
         Set<JobCategory> existingCategories = jobCategoryRepository.findByIdIn(jobRequest.getCategoryIds());
         if (existingCategories.isEmpty()) {
@@ -98,10 +109,7 @@ public class JobServiceImpl implements JobService {
         }
 
         Job job = new Job();
-        mapJobRequestToEntity(jobRequest, job, existingCompany, existingCategories, existingSkills);
-        Long currentUserId = SecurityUtils.currentUserId();
-        User creator = userRepository.findById(currentUserId)
-                .orElseThrow(() -> JobException.notFound("Current user not found"));
+        mapJobRequestToEntity(jobRequest, job, callerCompany, existingCategories, existingSkills);
         job.setCreatedBy(creator);
         applyStatusTimestamps(job);
 
@@ -112,7 +120,7 @@ public class JobServiceImpl implements JobService {
             notificationService.createNotificationForRole(
                     AppConstants.ROLE_ADMIN,
                     "Tin tuyển dụng mới được đăng",
-                    "Công ty '" + existingCompany.getName() + "' vừa đăng việc: " + savedJob.getTitle(),
+                    "Công ty '" + callerCompany.getName() + "' vừa đăng việc: " + savedJob.getTitle(),
                     NotificationType.JOB_CREATED,
                     savedJob.getId(),
                     AppConstants.ENTITY_JOB
@@ -128,8 +136,24 @@ public class JobServiceImpl implements JobService {
     public JobBaseResponse updateJob(Long jobId, JobRequest jobRequest) {
         validateJobRequest(jobRequest);
 
-        Company existingCompany = companyRepository.findById(jobRequest.getCompanyId())
-                .orElseThrow(() -> JobException.notFound("Company not found"));
+        // Resolve caller's company and enforce company-scoping
+        Long currentUserId = SecurityUtils.currentUserId();
+        User caller = userRepository.findById(currentUserId)
+                .orElseThrow(() -> JobException.notFound("Current user not found"));
+        if (caller.getCompany() == null) {
+            throw new AccessDeniedException("Current user is not associated with any company");
+        }
+        Long callerCompanyId = caller.getCompany().getId();
+
+        Job existingJob = jobRepository.findById(jobId)
+                .orElseThrow(() -> JobException.notFound("Job not found"));
+
+        if (!existingJob.getCompany().getId().equals(callerCompanyId)) {
+            throw new AccessDeniedException("Access denied: job belongs to a different company");
+        }
+
+        // Use the caller's company — do not allow reassigning to a different company
+        Company callerCompany = caller.getCompany();
 
         Set<JobCategory> existingCategories = jobCategoryRepository.findByIdIn(jobRequest.getCategoryIds());
         if (existingCategories.isEmpty()) {
@@ -141,10 +165,8 @@ public class JobServiceImpl implements JobService {
             existingSkills = skillRepository.findByIdIn(jobRequest.getSkillIds());
         }
 
-        Job existingJob = jobRepository.findById(jobId)
-                .orElseThrow(() -> JobException.notFound("Job not found"));
         JobStatus previousStatus = existingJob.getStatus();
-        mapJobRequestToEntity(jobRequest, existingJob, existingCompany, existingCategories, existingSkills);
+        mapJobRequestToEntity(jobRequest, existingJob, callerCompany, existingCategories, existingSkills);
         applyStatusTimestamps(existingJob, previousStatus);
 
         Job updatedJob = jobRepository.save(existingJob);
@@ -154,7 +176,7 @@ public class JobServiceImpl implements JobService {
             notificationService.createNotificationForRole(
                     AppConstants.ROLE_ADMIN,
                     "Tin tuyển dụng được cập nhật",
-                    "Công ty '" + existingCompany.getName() + "' vừa cập nhật tin: " + updatedJob.getTitle(),
+                    "Công ty '" + callerCompany.getName() + "' vừa cập nhật tin: " + updatedJob.getTitle(),
                     NotificationType.JOB_UPDATED,
                     updatedJob.getId(),
                     AppConstants.ENTITY_JOB
@@ -170,6 +192,17 @@ public class JobServiceImpl implements JobService {
     public void changeStatusJob(Long jobId, String status) {
         Job existingJob = jobRepository.findById(jobId)
                 .orElseThrow(() -> JobException.notFound("Job not found"));
+
+        // Enforce company-scoping: caller may only change status of their own company's jobs
+        Long currentUserId = SecurityUtils.currentUserId();
+        User caller = userRepository.findById(currentUserId)
+                .orElseThrow(() -> JobException.notFound("Current user not found"));
+        if (caller.getCompany() == null) {
+            throw new AccessDeniedException("Current user is not associated with any company");
+        }
+        if (!existingJob.getCompany().getId().equals(caller.getCompany().getId())) {
+            throw new AccessDeniedException("Access denied: job belongs to a different company");
+        }
 
         existingJob.setStatus(JobStatus.fromValue(status));
         jobRepository.save(existingJob);
@@ -189,7 +222,7 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    @Cacheable(cacheNames = "jobs:detail", key = "#jobId")
+    @Cacheable(cacheNames = "jobs:detail", key = "#jobId + '|' + T(java.util.Objects).toString(#userId)")
     public JobDetailResponse getJobDetail(Long jobId, Long userId) {
         Job job = jobRepository.findWithDetailsById(jobId)
                 .orElseThrow(() -> JobException.notFound("Job not found"));
@@ -202,8 +235,19 @@ public class JobServiceImpl implements JobService {
                 response.setApplied(true);
                 response.setAppliedAt(applicationOpt.get().getAppliedAt());
             }
+
+            Optional<SavedJob> savedJobOpt = savedJobRepository.findByUser_IdAndJob_Id(userId, jobId);
+            if (savedJobOpt.isPresent()) {
+                response.setSavedJobId(savedJobOpt.get().getId());
+                response.setIsSaved(true);
+            } else {
+                response.setIsSaved(false);
+                response.setSavedJobId(null);
+            }
         } else {
             response.setApplied(false);
+            response.setIsSaved(false);
+            response.setSavedJobId(null);
         }
 
         return response;
@@ -237,7 +281,7 @@ public class JobServiceImpl implements JobService {
                 .job(existingJob)
                 .user(existingUser)
                 .build();
-        savedJobRepository.save(savedJob);
+        SavedJob persistedSavedJob = savedJobRepository.save(savedJob);
         notificationService.createNotification(
                 existingUser.getId(),
                 "Đã lưu tin tuyển dụng",
@@ -246,7 +290,10 @@ public class JobServiceImpl implements JobService {
                 existingJob.getId(),
                 AppConstants.ENTITY_JOB
         );
-        return JobBaseResponse.fromEntity(existingJob);
+        JobBaseResponse response = JobBaseResponse.fromEntity(existingJob);
+        response.setSavedJobId(persistedSavedJob.getId());
+        response.setIsSaved(true);
+        return response;
     }
 
     @Override
@@ -261,7 +308,12 @@ public class JobServiceImpl implements JobService {
     @Transactional(readOnly = true)
     public List<JobBaseResponse> getSavedJobs(Long userId) {
         return savedJobRepository.findByUserId(userId).stream()
-                .map(saved -> JobBaseResponse.fromEntity(saved.getJob()))
+                .map(saved -> {
+                    JobBaseResponse response = JobBaseResponse.fromEntity(saved.getJob());
+                    response.setSavedJobId(saved.getId());
+                    response.setIsSaved(true);
+                    return response;
+                })
                 .collect(java.util.stream.Collectors.toList());
     }
 
@@ -295,9 +347,28 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    @Cacheable(cacheNames = "jobs:list", key = "T(java.util.Objects).toString(#keyword)+'|'+T(java.util.Objects).toString(#category)+'|'+T(java.util.Objects).toString(#location)+'|'+T(java.util.Objects).toString(#status)+'|'+#pageable.pageNumber+'|'+#pageable.pageSize+'|'+#pageable.sort")
-    public Page<JobResponse> getJobs(String keyword, String category, String location, String status, Pageable pageable) {
-        Specification<Job> spec = buildSpecification(keyword, category, location, status, null, null, false);
+    @Cacheable(cacheNames = "jobs:list", key = "T(java.util.Objects).toString(#keyword)+'|'+T(java.util.Objects).toString(#category)+'|'+T(java.util.Objects).toString(#location)+'|'+T(java.util.Objects).toString(#status)+'|'+T(java.util.Objects).toString(#currentUser?.id)+'|'+#pageable.pageNumber+'|'+#pageable.pageSize+'|'+#pageable.sort")
+    public Page<JobResponse> getJobs(String keyword, String category, String location, String status, 
+                                     com.example.jobportal.security.CustomUserDetails currentUser, Pageable pageable) {
+        Long companyId = null;
+        
+        // If user is HR or COMPANY_ADMIN, filter by their company
+        if (currentUser != null) {
+            String role = currentUser.getAuthorities().stream()
+                    .findFirst()
+                    .map(auth -> auth.getAuthority())
+                    .orElse("");
+            
+            if (role.equals("ROLE_HR") || role.equals("ROLE_COMPANY_ADMIN")) {
+                User user = userRepository.findById(currentUser.getId())
+                        .orElseThrow(() -> UserException.notFound("User not found"));
+                if (user.getCompany() != null) {
+                    companyId = user.getCompany().getId();
+                }
+            }
+        }
+        
+        Specification<Job> spec = buildSpecification(keyword, category, location, status, null, companyId, false);
         return jobRepository.findAll(spec, pageable).map(this::toJobResponse);
     }
 
@@ -308,6 +379,21 @@ public class JobServiceImpl implements JobService {
                                                   Long hrId,
                                                   Long companyId,
                                                   boolean onlyPublished) {
+        return buildSpecification(keyword, category, location, status, hrId, companyId, onlyPublished,
+                null, null, null, null);
+    }
+
+    private Specification<Job> buildSpecification(String keyword,
+                                                  String category,
+                                                  String location,
+                                                  String status,
+                                                  Long hrId,
+                                                  Long companyId,
+                                                  boolean onlyPublished,
+                                                  String employmentType,
+                                                  String experienceLevel,
+                                                  java.math.BigDecimal salaryMin,
+                                                  java.math.BigDecimal salaryMax) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (keyword != null && !keyword.isBlank()) {
@@ -333,6 +419,30 @@ public class JobServiceImpl implements JobService {
             }
             if (companyId != null) {
                 predicates.add(cb.equal(root.get("company").get("id"), companyId));
+            }
+            if (employmentType != null && !employmentType.isBlank()) {
+                try {
+                    predicates.add(cb.equal(root.get("employmentType"),
+                            com.example.jobportal.model.enums.EmploymentType.fromValue(employmentType)));
+                } catch (Exception ignored) {}
+            }
+            if (experienceLevel != null && !experienceLevel.isBlank()) {
+                try {
+                    predicates.add(cb.equal(root.get("experienceLevel"),
+                            com.example.jobportal.model.enums.ExperienceLevel.fromValue(experienceLevel)));
+                } catch (Exception ignored) {}
+            }
+            if (salaryMin != null) {
+                predicates.add(cb.or(
+                        cb.isTrue(root.get("isSalaryNegotiable")),
+                        cb.greaterThanOrEqualTo(root.get("salaryMax"), salaryMin)
+                ));
+            }
+            if (salaryMax != null) {
+                predicates.add(cb.or(
+                        cb.isTrue(root.get("isSalaryNegotiable")),
+                        cb.lessThanOrEqualTo(root.get("salaryMin"), salaryMax)
+                ));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };

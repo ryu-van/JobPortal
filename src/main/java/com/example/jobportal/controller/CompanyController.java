@@ -32,6 +32,7 @@ import com.example.jobportal.service.CompanyService;
 import com.example.jobportal.service.FileUploadService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 
 @RequiredArgsConstructor
@@ -77,6 +78,7 @@ public class CompanyController extends BaseController {
         return ok("Get company detail successfully", response);
     }
 
+    @PreAuthorize("hasRole('COMPANY_ADMIN')")
     @PutMapping(value = "/{companyId}", consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<CompanyBaseResponse>> updateCompany(
             @PathVariable Long companyId,
@@ -109,6 +111,16 @@ public class CompanyController extends BaseController {
     }
 
 
+    @PreAuthorize("hasRole('COMPANY_ADMIN')")
+    @GetMapping("/{companyId}/invitations")
+    public ResponseEntity<ApiResponse<List<InvitationResponse>>> getActiveInvitations(
+            @PathVariable Long companyId
+    ) {
+        List<InvitationResponse> responses = companyService.getActiveInvitationsForCompany(companyId);
+        return ok("Get active invitations successfully", responses);
+    }
+
+    @PreAuthorize("hasRole('COMPANY_ADMIN')")
     @PostMapping("/{companyId}/invitations")
     public ResponseEntity<ApiResponse<InvitationResponse>> createInvitation(
             @PathVariable Long companyId,
@@ -195,6 +207,26 @@ public class CompanyController extends BaseController {
         );
         return ok("Review company verification request successfully");
     }
+    @PreAuthorize("hasRole('COMPANY_ADMIN')")
+    @GetMapping("/{companyId}/hr-users")
+    public ResponseEntity<ApiResponse<List<UserBaseResponse>>> getHrUsers(
+            @PathVariable Long companyId
+    ) {
+        List<UserBaseResponse> hrUsers = companyService.getHrUsersForCompany(companyId);
+        return ok("Get HR users successfully", hrUsers);
+    }
+
+    @PreAuthorize("hasRole('COMPANY_ADMIN')")
+    @PatchMapping("/{companyId}/hr-users/{userId}/status")
+    public ResponseEntity<ApiResponse<Void>> updateHrUserStatus(
+            @PathVariable Long companyId,
+            @PathVariable Long userId,
+            @RequestParam Boolean isActive
+    ) {
+        companyService.updateHrUserStatus(companyId, userId, isActive);
+        return ok("Update HR user status successfully");
+    }
+
     @GetMapping("/industries")
     public ResponseEntity<ApiResponse<List<IndustryResponse>>> getAllIndustries(
             @RequestParam(required = false) String name

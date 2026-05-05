@@ -1,5 +1,6 @@
 package com.example.jobportal.config;
 
+import com.example.jobportal.security.StompAuthChannelInterceptor;
 import com.example.jobportal.security.WebSocketAuthInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import java.util.List;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketAuthInterceptor webSocketAuthInterceptor;
+    private final StompAuthChannelInterceptor stompAuthChannelInterceptor;
     private final CorsProperties corsProperties;
 
     @Value("${spring.profiles.active:dev}")
@@ -51,6 +53,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(stompAuthChannelInterceptor);
         registration.taskExecutor()
                 .corePoolSize(4)
                 .maxPoolSize(10)

@@ -29,7 +29,6 @@ public class FileUploadServiceImpl implements FileUploadService {
             validateFile(file, type);
             String fileName = FileNameUtils.generateUniqueFileName(file);
 
-            // Use "raw" for documents (PDF, DOC, DOCX) so Cloudinary serves them correctly
             String resourceType = (type == UploadType.DOCUMENTS) ? "raw" : "image";
 
             var result = cloudinary.uploader().upload(

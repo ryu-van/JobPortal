@@ -13,6 +13,11 @@ public class NotificationTypeConverter implements AttributeConverter<Notificatio
 
     @Override
     public NotificationType convertToEntityAttribute(String s) {
-        return s == null ? null : NotificationType.fromValue(s);
+        if (s == null) return null;
+        try {
+            return NotificationType.fromValue(s);
+        } catch (IllegalArgumentException e) {
+            return null; // unknown value → treat as null instead of 500
+        }
     }
 }

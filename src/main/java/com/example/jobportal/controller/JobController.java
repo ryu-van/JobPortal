@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import com.example.jobportal.dto.request.JobRequest;
 import com.example.jobportal.dto.request.SkillRequest;
 import com.example.jobportal.dto.response.ApiResponse;
@@ -53,13 +55,18 @@ public class JobController extends BaseController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String location,
+            @RequestParam(required = false) String employmentType,
+            @RequestParam(required = false) String experienceLevel,
+            @RequestParam(required = false) java.math.BigDecimal salaryMin,
+            @RequestParam(required = false) java.math.BigDecimal salaryMax,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "16") int size,
             @RequestParam(defaultValue = "created_at") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
 
         Page<JobBaseResponse> jobPage = jobService.getBaseJobs(
-                keyword, category, location, pageable(page, size, sort, direction));
+                keyword, category, location, employmentType, experienceLevel, salaryMin, salaryMax,
+                pageable(page, size, sort, direction));
         return ok("Get job list successfully", jobPage.getContent(),
                 PageInfo.of(jobPage.getNumber(), jobPage.getSize(), jobPage.getTotalElements()));
     }
@@ -133,20 +140,23 @@ public class JobController extends BaseController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "16") int size,
             @RequestParam(defaultValue = "created_at") String sort,
-            @RequestParam(defaultValue = "DESC") String direction) {
+            @RequestParam(defaultValue = "DESC") String direction,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         Page<JobResponse> jobPage = jobService.getJobs(
-                keyword, category, location, status, pageable(page, size, sort, direction));
+                keyword, category, location, status, currentUser, pageable(page, size, sort, direction));
         return ok("Get jobs successfully", jobPage.getContent(),
                 PageInfo.of(jobPage.getNumber(), jobPage.getSize(), jobPage.getTotalElements()));
     }
 
 
+    @PreAuthorize("hasAnyRole('HR', 'COMPANY_ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<JobBaseResponse>> createJob(@Valid @RequestBody JobRequest jobRequest) {
         return created("Job created successfully", jobService.createJob(jobRequest));
     }
 
+    @PreAuthorize("hasAnyRole('HR', 'COMPANY_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<JobBaseResponse>> updateJob(
             @Valid @RequestBody JobRequest jobRequest,
@@ -154,6 +164,7 @@ public class JobController extends BaseController {
         return ok("Job updated successfully", jobService.updateJob(id, jobRequest));
     }
 
+    @PreAuthorize("hasAnyRole('HR', 'COMPANY_ADMIN')")
     @PutMapping("/{id}/status")
     public ResponseEntity<ApiResponse<Void>> updateJobStatus(
             @PathVariable Long id, @RequestParam String status) {
@@ -161,6 +172,7 @@ public class JobController extends BaseController {
         return ok("Job status updated successfully");
     }
 
+    @PreAuthorize("hasAnyRole('HR', 'COMPANY_ADMIN')")
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<Void>> patchJobStatus(
             @PathVariable Long id, @RequestParam String status) {

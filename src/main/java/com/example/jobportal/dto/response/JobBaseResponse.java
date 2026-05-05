@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 public class JobBaseResponse {
     private Long id;
     private String title;
+    private String description;
     private String companyName;
     private Long companyId;
 
@@ -31,6 +32,9 @@ public class JobBaseResponse {
     private String salaryCurrency;
     private Set<String> skills;
 
+    private Long savedJobId;
+    private Boolean isSaved;
+
 
 
     public static JobBaseResponse fromEntity(Job job) {
@@ -38,6 +42,7 @@ public class JobBaseResponse {
         return JobBaseResponse.builder()
                 .id(job.getId())
                 .title(job.getTitle())
+                .description(job.getDescription())
                 .companyName(job.getCompany().getName())
                 .companyId(job.getCompany().getId())
                 .address(AddressResponse.fromEntity(job.getAddress()))

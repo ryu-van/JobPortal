@@ -34,6 +34,7 @@ public class JobBaseResponseV2 extends JobBaseResponse {
         return JobBaseResponseV2.builder()
                 .id(job.getId())
                 .title(job.getTitle())
+                .description(job.getDescription())
                 .companyName(job.getCompany().getName())
                 .address(AddressResponse.fromEntity(job.getAddress()))
                 .companyLogo(job.getCompany().getLogoUrl())

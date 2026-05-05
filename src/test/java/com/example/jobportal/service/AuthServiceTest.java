@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.example.jobportal.config.CookieProperties;
 import com.example.jobportal.dto.request.RegisterUserRequest;
 import com.example.jobportal.exception.RoleException;
 import com.example.jobportal.exception.UserException;
@@ -67,6 +68,9 @@ class AuthServiceTest {
 
     @Mock
     private CompanyService companyService;
+
+    @Mock
+    private CookieProperties cookieProperties;
 
     @Mock
     private HttpServletResponse response;
@@ -287,7 +291,7 @@ class AuthServiceTest {
 
         doThrow(new RuntimeException("Email error"))
                 .when(emailService)
-                .sendVerificationEmail(anyString(), anyString(), anyString());
+                .sendVerificationEmail(anyString(), any(), anyString());
 
         authServiceImpl.register(request, response);
 
